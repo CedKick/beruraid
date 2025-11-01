@@ -1,0 +1,122 @@
+:root {
+  --bg-primary: #0a0e27;
+  --bg-secondary: #1a1f3a;
+  --accent: #00d9ff;
+  --text-primary: #ffffff;
+  --text-secondary: #a0a0a0;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  background: var(--bg-secondary);
+  padding: 1.5rem 2rem;
+  border-bottom: 2px solid var(--accent);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.app-header h1 {
+  font-size: 2rem;
+  color: var(--accent);
+  text-shadow: 0 0 10px rgba(0, 217, 255, 0.5);
+}
+
+.status {
+  font-size: 1rem;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+
+.player-id {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.app-main {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+}
+
+.lobby {
+  background: var(--bg-secondary);
+  padding: 3rem;
+  border-radius: 16px;
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 30px rgba(0, 217, 255, 0.3);
+  text-align: center;
+  min-width: 400px;
+}
+
+.lobby h2 {
+  font-size: 2rem;
+  margin-bottom: 2rem;
+  color: var(--accent);
+}
+
+.btn-join {
+  padding: 1rem 2rem;
+  font-size: 1.2rem;
+  background: var(--accent);
+  color: var(--bg-primary);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  margin-bottom: 2rem;
+}
+
+.btn-join:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(0, 217, 255, 0.6);
+}
+
+.info {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.info p {
+  margin: 0.5rem 0;
+  color: var(--text-secondary);
+}
+
+.connecting {
+  font-size: 1.5rem;
+  color: var(--text-secondary);
+}
+
+.app-footer {
+  background: var(--bg-secondary);
+  padding: 1rem;
+  text-align: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}

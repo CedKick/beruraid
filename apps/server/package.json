@@ -1,0 +1,24 @@
+{
+  "name": "@beruraid/server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon --exec tsx src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "lint": "eslint src --ext .ts",
+    "test": "jest"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/cors": "^2.8.17",
+    "nodemon": "^3.1.9",
+    "tsx": "^4.19.3"
+  }
+}

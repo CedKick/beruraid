@@ -1,0 +1,27 @@
+{
+  "name": "beruraid",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Solo Leveling: Raid Battle - Multiplayer Boss Raid Game",
+  "scripts": {
+    "dev:server": "pnpm --filter @beruraid/server dev",
+    "dev:client": "pnpm --filter @beruraid/client dev",
+    "dev": "concurrently \"pnpm dev:server\" \"pnpm dev:client\"",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "@types/node": "^24.9.2",
+    "@typescript-eslint/eslint-plugin": "^8.46.2",
+    "@typescript-eslint/parser": "^8.46.2",
+    "concurrently": "^9.2.1",
+    "eslint": "^9.39.0",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.3"
+  }
+}
