@@ -9,7 +9,12 @@
       "Bash(pnpm create:*)",
       "Bash(pnpm dev)",
       "Bash(curl:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(tree:*)",
+      "Bash(pnpm --filter @beruraid/client build:*)",
+      "Bash(pnpm dev:client:*)",
+      "Bash(mkdir:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,0 +1,139 @@
+.player-selection {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: white;
+}
+
+.player-selection h1 {
+  font-size: 3rem;
+  margin-bottom: 2rem;
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+}
+
+.selection-content {
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 215, 0, 0.3);
+  border-radius: 20px;
+  padding: 3rem;
+  max-width: 800px;
+  width: 100%;
+  backdrop-filter: blur(10px);
+}
+
+.selection-content h2 {
+  text-align: center;
+  margin-bottom: 2rem;
+  font-size: 1.8rem;
+}
+
+.player-count-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.player-count-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 15px;
+  padding: 2rem 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.player-count-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 215, 0, 0.5);
+  transform: translateY(-5px);
+}
+
+.player-count-btn.selected {
+  background: rgba(255, 215, 0, 0.2);
+  border-color: gold;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+}
+
+.player-count-btn .count {
+  font-size: 3rem;
+  font-weight: bold;
+  color: gold;
+}
+
+.player-count-btn .label {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.game-info {
+  margin-bottom: 2rem;
+}
+
+.game-info h3 {
+  text-align: center;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+  color: gold;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.control-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1rem;
+  border-radius: 10px;
+}
+
+.control-item .key {
+  background: rgba(255, 215, 0, 0.2);
+  border: 2px solid gold;
+  border-radius: 5px;
+  padding: 0.5rem 1rem;
+  font-weight: bold;
+  min-width: 80px;
+  text-align: center;
+}
+
+.control-item .action {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.start-btn {
+  width: 100%;
+  padding: 1.5rem;
+  font-size: 1.5rem;
+  font-weight: bold;
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+  border: none;
+  border-radius: 10px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.start-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(255, 107, 107, 0.4);
+}
+
+.start-btn:active {
+  transform: translateY(-1px);
+}

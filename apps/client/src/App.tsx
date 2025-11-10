@@ -1,76 +1,62 @@
-import { useEffect, useState } from 'react';
-import { socketService } from './networking/SocketService';
+import { useState } from 'react';
+import { CharacterSelection } from './components/CharacterSelection';
+import { LobbyScreen } from './components/LobbyScreen';
+import { GameContainer } from './components/GameContainer';
+import { CHARACTERS } from './game/types/Character';
+import type { GameMode } from './components/LobbyScreen';
 import './App.css';
 
+type AppState = 'characterSelection' | 'lobby' | 'game';
+
+interface GameConfig {
+  characterId: string;
+  mode: GameMode;
+  playerCount: number;
+  roomCode?: string;
+}
+
 function App() {
-  const [isConnected, setIsConnected] = useState(false);
-  const [playerId, setPlayerId] = useState<string>('');
+  const [appState, setAppState] = useState<AppState>('characterSelection');
+  const [gameConfig, setGameConfig] = useState<GameConfig>({
+    characterId: '',
+    mode: 'solo',
+    playerCount: 1,
+  });
 
-  useEffect(() => {
-    // Connect to server
-    socketService.connect();
-
-    // Listen for connection events
-    socketService.on('connect', () => {
-      console.log('✅ Connected to server');
-      setIsConnected(true);
-    });
-
-    socketService.on('disconnect', () => {
-      console.log('❌ Disconnected from server');
-      setIsConnected(false);
-    });
-
-    socketService.on('player:joined', (data: { playerId: string }) => {
-      console.log('👤 Player joined:', data.playerId);
-      setPlayerId(data.playerId);
-    });
-
-    // Cleanup on unmount
-    return () => {
-      socketService.disconnect();
-    };
-  }, []);
-
-  const handleJoin = () => {
-    socketService.emit('player:join', {
-      name: 'TestPlayer',
-      class: 'warrior'
-    });
+  const handleCharacterSelected = (characterId: string) => {
+    setGameConfig(prev => ({ ...prev, characterId }));
+    setAppState('lobby');
   };
+
+  const handleStartGame = (mode: GameMode, playerCount: number, roomCode?: string) => {
+    setGameConfig(prev => ({ ...prev, mode, playerCount, roomCode }));
+    setAppState('game');
+  };
+
+  const selectedCharacter = gameConfig.characterId ? CHARACTERS[gameConfig.characterId] : null;
 
   return (
     <div className="app">
-      <header className="app-header">
-        <h1>🎮 BeruRaid - Solo Leveling</h1>
-        <div className="status">
-          Status: {isConnected ? '🟢 Connected' : '🔴 Disconnected'}
-        </div>
-        {playerId && <div className="player-id">Player ID: {playerId}</div>}
-      </header>
+      {appState === 'characterSelection' && (
+        <CharacterSelection onCharacterSelected={handleCharacterSelected} />
+      )}
 
-      <main className="app-main">
-        {isConnected ? (
-          <div className="lobby">
-            <h2>Lobby</h2>
-            <button onClick={handleJoin} className="btn-join">
-              Join Raid
-            </button>
-            <div className="info">
-              <p>🎯 Phase 1: Basic connection test</p>
-              <p>📡 Server: localhost:3000</p>
-            </div>
-          </div>
-        ) : (
-          <div className="connecting">
-            <p>Connecting to server...</p>
-          </div>
-        )}
-      </main>
+      {appState === 'lobby' && selectedCharacter && (
+        <LobbyScreen
+          characterName={selectedCharacter.name}
+          characterId={gameConfig.characterId}
+          onStartGame={handleStartGame}
+        />
+      )}
 
-      <footer className="app-footer">
-        <p>BeruRaid v1.0.0 - Alpha Build</p>
-      </footer>
+      {appState === 'game' && (
+        <GameContainer
+          playerCount={gameConfig.playerCount}
+          characterId={gameConfig.characterId}
+          gameMode={gameConfig.mode}
+          roomCode={gameConfig.roomCode}
+        />
+      )}
     </div>
   );
 }

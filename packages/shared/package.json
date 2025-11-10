@@ -1,18 +1,21 @@
 {
   "name": "@beruraid/shared",
   "version": "1.0.0",
-  "private": true,
-  "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    }
-  },
+  "description": "Shared types and interfaces for BeruRaid multiplayer",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch"
+    "watch": "tsc --watch"
+  },
+  "keywords": [
+    "beruraid",
+    "types",
+    "shared"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.7.2"
   }
 }

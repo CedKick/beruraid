@@ -1,9 +1,11 @@
-/**
- * @beruraid/shared - Shared types and constants
- */
+// Player types
+export * from './Player';
 
-// Export all types
-export * from './types/index.js';
+// Room types
+export * from './Room';
 
-// Export constants
-export * from './constants/game.js';
+// Game types
+export * from './Game';
+
+// Event types
+export * from './Events';

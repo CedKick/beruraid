@@ -1,0 +1,180 @@
+.stats-panel {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(26, 26, 46, 0.95);
+  border: 2px solid #ffd700;
+  border-radius: 8px;
+  min-width: 250px;
+  max-width: 400px;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+}
+
+.stats-header {
+  padding: 10px 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  user-select: none;
+}
+
+.stats-header:hover {
+  background: rgba(255, 215, 0, 0.1);
+}
+
+.player-level {
+  font-size: 18px;
+  font-weight: bold;
+  color: #ffd700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.stat-points {
+  flex: 1;
+  text-align: center;
+}
+
+.points-available {
+  background: #ff6600;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+  color: white;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 102, 0, 0.7);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 10px 5px rgba(255, 102, 0, 0);
+  }
+}
+
+.expand-icon {
+  font-size: 12px;
+  color: #ffd700;
+}
+
+.exp-bar {
+  position: relative;
+  height: 20px;
+  background: rgba(0, 0, 0, 0.5);
+  border-top: 1px solid rgba(255, 215, 0, 0.3);
+  overflow: hidden;
+}
+
+.exp-fill {
+  position: absolute;
+  height: 100%;
+  background: linear-gradient(90deg, #4a90e2, #63b3ed);
+  transition: width 0.5s ease;
+}
+
+.exp-text {
+  position: relative;
+  text-align: center;
+  line-height: 20px;
+  font-size: 11px;
+  font-weight: bold;
+  color: white;
+  text-shadow: 1px 1px 2px black;
+}
+
+.stats-content {
+  padding: 15px;
+  border-top: 1px solid rgba(255, 215, 0, 0.3);
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.stats-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.stat-row:hover {
+  background: rgba(255, 215, 0, 0.1);
+}
+
+.stat-label {
+  font-size: 13px;
+  color: #ccc;
+}
+
+.stat-value {
+  font-size: 14px;
+  font-weight: bold;
+  color: white;
+  min-width: 60px;
+  text-align: right;
+}
+
+.stat-add-btn {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4caf50, #45a049);
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stat-add-btn:hover:not(:disabled) {
+  transform: scale(1.1);
+  box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+}
+
+.stat-add-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.stat-add-btn:disabled {
+  background: rgba(100, 100, 100, 0.5);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Scrollbar styling */
+.stats-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.stats-content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
+}
+
+.stats-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 215, 0, 0.5);
+  border-radius: 3px;
+}
+
+.stats-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 215, 0, 0.7);
+}

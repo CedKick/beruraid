@@ -3,9 +3,17 @@
  */
 
 import { io, Socket } from 'socket.io-client';
+import type {
+  ClientToServerEvents,
+  ServerToClientEvents,
+  CreateRoomRequest,
+  CreateRoomResponse,
+  JoinRoomRequest,
+  JoinRoomResponse,
+} from '@beruraid/shared';
 
 class SocketService {
-  private socket: Socket | null = null;
+  private socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
   private readonly serverUrl: string;
 
   constructor() {
@@ -44,7 +52,7 @@ class SocketService {
   /**
    * Emit an event to the server
    */
-  public emit(event: string, data?: unknown): void {
+  public emit(event: any, data?: unknown): void {
     if (!this.socket) {
       console.error('Socket not connected');
       return;
@@ -55,7 +63,7 @@ class SocketService {
   /**
    * Listen for an event from the server
    */
-  public on(event: string, callback: (data: any) => void): void {
+  public on(event: any, callback: (data: any) => void): void {
     if (!this.socket) {
       console.error('Socket not connected');
       return;
@@ -66,7 +74,7 @@ class SocketService {
   /**
    * Remove a listener
    */
-  public off(event: string, callback?: (data: any) => void): void {
+  public off(event: any, callback?: (data: any) => void): void {
     if (!this.socket) {
       return;
     }
@@ -104,6 +112,67 @@ class SocketService {
    */
   public getSocketId(): string | undefined {
     return this.socket?.id;
+  }
+
+  /**
+   * Create a new room
+   */
+  public createRoom(request: CreateRoomRequest): Promise<CreateRoomResponse> {
+    return new Promise((resolve, reject) => {
+      if (!this.socket) {
+        reject(new Error('Socket not connected'));
+        return;
+      }
+
+      this.socket.emit('room:create', request, (response) => {
+        if (response.success) {
+          console.log('🏠 Room created:', response.roomCode);
+        } else {
+          console.error('❌ Failed to create room:', response.error);
+        }
+        resolve(response);
+      });
+    });
+  }
+
+  /**
+   * Join an existing room
+   */
+  public joinRoom(request: JoinRoomRequest): Promise<JoinRoomResponse> {
+    return new Promise((resolve, reject) => {
+      if (!this.socket) {
+        reject(new Error('Socket not connected'));
+        return;
+      }
+
+      this.socket.emit('room:join', request, (response) => {
+        if (response.success) {
+          console.log('👤 Joined room:', request.roomCode);
+        } else {
+          console.error('❌ Failed to join room:', response.error);
+        }
+        resolve(response);
+      });
+    });
+  }
+
+  /**
+   * Leave current room
+   */
+  public leaveRoom(): void {
+    if (!this.socket) {
+      console.error('Socket not connected');
+      return;
+    }
+    this.socket.emit('room:leave');
+    console.log('👋 Left room');
+  }
+
+  /**
+   * Get socket instance (for advanced usage)
+   */
+  public getSocket(): Socket<ServerToClientEvents, ClientToServerEvents> | null {
+    return this.socket;
   }
 }
 
