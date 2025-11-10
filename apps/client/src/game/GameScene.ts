@@ -42,6 +42,7 @@ export class GameScene extends Phaser.Scene {
   private positionUpdateInterval = 100; // Send position every 100ms (10 times per second)
   private isMultiplayerMode = false;
   private serverGameState: any = null;
+  private serverBossAttacks: Map<string, Phaser.GameObjects.GameObject> = new Map();
 
   constructor() {
     super({ key: 'GameScene' });
@@ -131,9 +132,20 @@ export class GameScene extends Phaser.Scene {
     const characterId = this.gameConfig?.characterId || 'stark';
     this.player = new Player(this, width / 2, height - 100, characterId);
 
-    // Create boss with player count for HP scaling
-    const playerCount = this.gameConfig?.playerCount || 1;
-    this.boss = new Boss(this, width / 2, 150, playerCount);
+    // Check if in multiplayer mode
+    const isMultiplayer = this.gameConfig?.gameMode === 'multiplayer';
+
+    if (!isMultiplayer) {
+      // SOLO MODE: Create boss with player count for HP scaling
+      const playerCount = this.gameConfig?.playerCount || 1;
+      this.boss = new Boss(this, width / 2, 150, playerCount);
+    } else {
+      // MULTIPLAYER MODE: Create a simple boss sprite that will be controlled by server
+      // The boss entity will be updated via server state
+      const playerCount = this.gameConfig?.playerCount || 1;
+      this.boss = new Boss(this, width / 2, 150, playerCount);
+      // Note: In multiplayer, the boss logic is server-side, client just renders
+    }
 
     // Setup collisions
     this.physics.add.overlap(
@@ -428,23 +440,168 @@ export class GameScene extends Phaser.Scene {
   }
 
   private renderFromServerState(gameState: any) {
-    // Update boss position
+    if (!gameState) return;
+
+    // Update boss from server state
     if (gameState.boss && this.boss) {
       const bossSprite = this.boss.getSprite();
+
+      // Update position
       bossSprite.setPosition(gameState.boss.position.x, gameState.boss.position.y);
 
-      // TODO: Update boss HP bar
-      // TODO: Render boss attacks from server state
+      // Update HP (use the boss's internal method to update HP bar)
+      // We need to directly set the HP values
+      const currentHp = gameState.boss.hp;
+      const maxHp = gameState.boss.maxHp;
+
+      // Force update boss HP display using 'as any' to access private properties
+      (this.boss as any).currentHp = currentHp;
+      (this.boss as any).maxHp = maxHp;
+      (this.boss as any).healthSystem = {
+        ...((this.boss as any).healthSystem || {}),
+        currentHp: currentHp,
+        maxHp: maxHp,
+        rageCount: gameState.boss.rageCount,
+        barsDefeated: gameState.boss.barsDefeated
+      };
+
+      // Update stun state
+      if (gameState.boss.isStunned) {
+        (this.boss as any).isStunned = true;
+        (this.boss as any).stunEndTime = gameState.boss.stunEndTime;
+      } else {
+        (this.boss as any).isStunned = false;
+      }
+
+      // Render boss attacks from server state
+      if (gameState.boss.attacks) {
+        this.renderBossAttacks(gameState.boss.attacks);
+      }
     }
 
-    // Update other players
-    for (const playerState of gameState.players) {
-      if (playerState.socketId === socketService.getSocketId()) {
-        // Update our own player position from server (authoritative)
-        this.player.getSprite().setPosition(playerState.position.x, playerState.position.y);
-      } else {
-        // Update other players
-        this.updateOtherPlayer(playerState);
+    // Update all players
+    if (gameState.players) {
+      for (const playerState of gameState.players) {
+        if (playerState.socketId === socketService.getSocketId()) {
+          // Update our own player position from server (authoritative)
+          const playerSprite = this.player.getSprite();
+          playerSprite.setPosition(playerState.position.x, playerState.position.y);
+
+          // Update sprite texture based on direction
+          const textureKey = `${playerState.characterId}_${playerState.direction}`;
+          if (this.textures.exists(textureKey)) {
+            playerSprite.setTexture(textureKey);
+          }
+
+          // Update dodging state
+          if (playerState.isDodging) {
+            playerSprite.setAlpha(0.5);
+          } else {
+            playerSprite.setAlpha(1);
+          }
+        } else {
+          // Update other players
+          this.updateOtherPlayer(playerState);
+        }
+      }
+    }
+  }
+
+  private renderBossAttacks(attacks: any[]) {
+    // Track which attacks are currently in the server state
+    const serverAttackIds = new Set(attacks.map((a: any) => a.id));
+
+    // Remove attacks that no longer exist on server
+    for (const [attackId, attackObj] of this.serverBossAttacks.entries()) {
+      if (!serverAttackIds.has(attackId)) {
+        attackObj.destroy();
+        this.serverBossAttacks.delete(attackId);
+      }
+    }
+
+    // Create or update attacks from server
+    for (const attack of attacks) {
+      // Check if we already have this attack
+      const existing = this.serverBossAttacks.get(attack.id);
+
+      if (existing) {
+        // Attack already exists, update it
+        if (attack.type === 'expandingCircle') {
+          // Update expanding circle radius
+          (existing as Phaser.GameObjects.Arc).setRadius(attack.radius || 20);
+        }
+
+        // Update position (in case attack moves)
+        (existing as any).setPosition?.(attack.x, attack.y);
+
+        // Update alpha based on active state (for warnings)
+        if (!attack.active) {
+          (existing as any).setAlpha?.(0.3); // Dim for warning
+        } else {
+          (existing as any).setAlpha?.(0.6); // Full brightness when active
+        }
+
+        continue;
+      }
+
+      // Create new attack visual
+      let visual: Phaser.GameObjects.GameObject | null = null;
+
+      switch (attack.type) {
+        case 'laser': {
+          // Create laser rectangle (starts as warning)
+          const laser = this.add.rectangle(
+            attack.x,
+            attack.y,
+            attack.width || 20,
+            attack.height || 600,
+            0xff0000,
+            attack.active ? 0.6 : 0.3
+          );
+          laser.setDepth(50);
+          // Rotate laser based on angle
+          if (attack.angle !== undefined) {
+            laser.setRotation(attack.angle);
+          }
+          visual = laser;
+          break;
+        }
+
+        case 'aoe': {
+          // Create AOE circle (starts as warning)
+          const aoe = this.add.circle(
+            attack.x,
+            attack.y,
+            attack.radius || 60,
+            0xff6600,
+            attack.active ? 0.5 : 0.2
+          );
+          aoe.setDepth(50);
+          // Add stroke
+          aoe.setStrokeStyle(2, 0xff6600);
+          visual = aoe;
+          break;
+        }
+
+        case 'expandingCircle': {
+          // Create expanding circle
+          const circle = this.add.circle(
+            attack.x,
+            attack.y,
+            attack.radius || 20,
+            0xff0000,
+            attack.active ? 0.5 : 0.2
+          );
+          circle.setDepth(50);
+          // Add stroke
+          circle.setStrokeStyle(3, 0xff0000);
+          visual = circle;
+          break;
+        }
+      }
+
+      if (visual) {
+        this.serverBossAttacks.set(attack.id, visual);
       }
     }
   }

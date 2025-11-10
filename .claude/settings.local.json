@@ -16,7 +16,15 @@
       "Bash(pnpm dev:client:*)",
       "Bash(mkdir:*)",
       "Bash(pnpm --filter @beruraid/shared build:*)",
-      "Bash(pnpm --filter @beruraid/server build:*)"
+      "Bash(pnpm --filter @beruraid/server build:*)",
+      "Bash(pnpm start)",
+      "Bash(timeout /t 3)",
+      "Bash(nul)",
+      "Bash(git -C \"C:\\Users\\CedPC\\Desktop\\MesDev\\BeruRaid\" log --oneline -20)",
+      "Bash(git -C \"C:\\Users\\CedPC\\Desktop\\MesDev\\BeruRaid\" show 4ac8129 --stat)",
+      "Bash(git push)",
+      "Bash(del nul 2)",
+      "Bash(.gitignore)"
     ],
     "deny": [],
     "ask": []
