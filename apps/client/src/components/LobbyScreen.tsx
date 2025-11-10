@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { socketService } from '../networking/SocketService';
 import type { PlayerState } from '@beruraid/shared';
 import './LobbyScreen.css';
@@ -25,6 +25,16 @@ export function LobbyScreen({ characterName, characterId, onStartGame }: LobbySc
   const [isHost, setIsHost] = useState(false);
   const [isPlayerReady, setIsPlayerReady] = useState(false);
 
+  // Use refs to avoid unnecessary re-renders
+  const currentRoomCodeRef = useRef(currentRoomCode);
+  const playersInRoomRef = useRef(playersInRoom);
+
+  // Update refs when values change
+  useEffect(() => {
+    currentRoomCodeRef.current = currentRoomCode;
+    playersInRoomRef.current = playersInRoom;
+  }, [currentRoomCode, playersInRoom]);
+
   // Connect to server when component mounts
   useEffect(() => {
     socketService.connect();
@@ -47,8 +57,8 @@ export function LobbyScreen({ characterName, characterId, onStartGame }: LobbySc
 
       socket.on('room:started', () => {
         // Start the game when server says raid has started
-        if (currentRoomCode) {
-          onStartGame('multiplayer', playersInRoom.length, currentRoomCode);
+        if (currentRoomCodeRef.current) {
+          onStartGame('multiplayer', playersInRoomRef.current.length, currentRoomCodeRef.current);
         }
       });
 
@@ -58,10 +68,11 @@ export function LobbyScreen({ characterName, characterId, onStartGame }: LobbySc
       });
     }
 
+    // Only disconnect when component unmounts
     return () => {
       socketService.disconnect();
     };
-  }, [currentRoomCode, playersInRoom.length, onStartGame]);
+  }, [onStartGame]);
 
   const handleCreateRoom = async () => {
     setIsConnecting(true);
