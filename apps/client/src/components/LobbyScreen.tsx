@@ -68,10 +68,8 @@ export function LobbyScreen({ characterName, characterId, onStartGame }: LobbySc
       });
     }
 
-    // Only disconnect when component unmounts
-    return () => {
-      socketService.disconnect();
-    };
+    // Socket cleanup is handled in App.tsx when returning to menu
+    // Don't disconnect here as we need the socket for the game
   }, [onStartGame]);
 
   const handleCreateRoom = async () => {

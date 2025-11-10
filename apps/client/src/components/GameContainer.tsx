@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import Phaser from 'phaser';
 import { GameScene } from '../game/GameScene';
 import { GameUI } from './GameUI';
+import { socketService } from '../networking/SocketService';
 import './GameContainer.css';
 import type { GameMode } from './LobbyScreen';
 
@@ -57,6 +58,12 @@ export function GameContainer({ playerCount, characterId, gameMode, roomCode }: 
       if (phaserGameRef.current) {
         phaserGameRef.current.destroy(true);
         phaserGameRef.current = null;
+      }
+
+      // Disconnect socket when leaving multiplayer game
+      if (gameMode === 'multiplayer') {
+        socketService.disconnect();
+        console.log('🔌 Disconnected from multiplayer session');
       }
     };
   }, [playerCount, characterId, gameMode, roomCode]);

@@ -24,7 +24,14 @@
       "Bash(git -C \"C:\\Users\\CedPC\\Desktop\\MesDev\\BeruRaid\" show 4ac8129 --stat)",
       "Bash(git push)",
       "Bash(del nul 2)",
-      "Bash(.gitignore)"
+      "Bash(.gitignore)",
+      "Bash(git pull:*)",
+      "Bash(pnpm --filter @beruraid/server dev:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(npx kill-port:*)",
+      "Bash(timeout /t 3 /nobreak)"
     ],
     "deny": [],
     "ask": []
