@@ -58,6 +58,7 @@ export class RoomManager {
         direction: 'down',
         isDodging: false,
         isAlive: true,
+        isReady: false,
         lastUpdateTime: Date.now(),
       };
 
@@ -134,6 +135,7 @@ export class RoomManager {
         direction: 'down',
         isDodging: false,
         isAlive: true,
+        isReady: false,
         lastUpdateTime: Date.now(),
       };
 

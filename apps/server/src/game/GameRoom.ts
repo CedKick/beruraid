@@ -176,6 +176,8 @@ export class GameRoom {
     // Convert server player states to shared PlayerState format
     const playerStates: PlayerState[] = Array.from(this.serverPlayers.values()).map(sp => {
       const state = sp.getState();
+      // Find the original player state to get isReady
+      const originalPlayer = Array.from(this.players.values()).find(p => p.socketId === state.socketId);
       return {
         id: state.socketId,
         socketId: state.socketId,
@@ -186,6 +188,7 @@ export class GameRoom {
         stats: state.stats,
         isDodging: state.isDodging,
         isAlive: state.isAlive,
+        isReady: originalPlayer?.isReady || false,
         lastUpdateTime: Date.now()
       };
     });
@@ -308,6 +311,43 @@ export class GameRoom {
     }
   }
 
+  /**
+   * Set player ready status
+   */
+  public setPlayerReady(socketId: string, isReady: boolean): boolean {
+    // Find player by socket ID
+    for (const [playerId, player] of this.players.entries()) {
+      if (player.socketId === socketId) {
+        player.isReady = isReady;
+        this.players.set(playerId, player);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Check if all players are ready
+   */
+  public areAllPlayersReady(): boolean {
+    if (this.players.size === 0) return false;
+
+    for (const player of this.players.values()) {
+      if (!player.isReady) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Check if socket is the host
+   */
+  public isHost(socketId: string): boolean {
+    const hostPlayer = this.players.get(this.hostId);
+    return hostPlayer?.socketId === socketId;
+  }
+
   // Getters
   public getPlayerCount(): number {
     return this.players.size;
@@ -340,5 +380,9 @@ export class GameRoom {
   public getHostName(): string {
     const host = this.players.get(this.hostId);
     return host ? host.name : 'Unknown';
+  }
+
+  public getHostId(): string {
+    return this.hostId;
   }
 }

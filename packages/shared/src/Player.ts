@@ -31,6 +31,7 @@ export interface PlayerState {
   direction: 'up' | 'down' | 'left' | 'right';
   isDodging: boolean;
   isAlive: boolean;
+  isReady: boolean;
   lastUpdateTime: number;
 }
 

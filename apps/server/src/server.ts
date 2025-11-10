@@ -150,6 +150,18 @@ io.on('connection', (socket) => {
   socket.on('room:start', () => {
     const room = roomManager.getRoomBySocketId(socket.id);
     if (room) {
+      // Check if socket is the host
+      if (!room.isHost(socket.id)) {
+        socket.emit('error', { message: 'Only the host can start the raid' });
+        return;
+      }
+
+      // Check if all players are ready
+      if (!room.areAllPlayersReady()) {
+        socket.emit('error', { message: 'All players must be ready' });
+        return;
+      }
+
       try {
         room.startRaid();
 
@@ -160,6 +172,24 @@ io.on('connection', (socket) => {
       } catch (error) {
         console.error('Error starting raid:', error);
         socket.emit('error', { message: 'Failed to start raid' });
+      }
+    }
+  });
+
+  // Player: Ready
+  socket.on('player:ready', () => {
+    const room = roomManager.getRoomBySocketId(socket.id);
+    if (room) {
+      const success = room.setPlayerReady(socket.id, true);
+      if (success) {
+        // Broadcast updated player list to all players
+        const players = room.getPlayers();
+        io.to(room.id).emit('room:joined', {
+          roomId: room.id,
+          players: players
+        });
+
+        console.log(`✅ Player ${socket.id} is ready in room ${room.id}`);
       }
     }
   });

@@ -21,6 +21,9 @@ export function LobbyScreen({ characterName, characterId, onStartGame }: LobbySc
   const [error, setError] = useState('');
   const [playersInRoom, setPlayersInRoom] = useState<PlayerState[]>([]);
   const [currentRoomId, setCurrentRoomId] = useState('');
+  const [currentRoomCode, setCurrentRoomCode] = useState('');
+  const [isHost, setIsHost] = useState(false);
+  const [isPlayerReady, setIsPlayerReady] = useState(false);
 
   // Connect to server when component mounts
   useEffect(() => {
@@ -37,6 +40,18 @@ export function LobbyScreen({ characterName, characterId, onStartGame }: LobbySc
         setPlayersInRoom(prev => prev.filter(p => p.socketId !== data.playerId));
       });
 
+      socket.on('room:joined', (data) => {
+        // Update player list when room updates
+        setPlayersInRoom(data.players);
+      });
+
+      socket.on('room:started', () => {
+        // Start the game when server says raid has started
+        if (currentRoomCode) {
+          onStartGame('multiplayer', playersInRoom.length, currentRoomCode);
+        }
+      });
+
       socket.on('error', (data) => {
         setError(data.message);
         setIsConnecting(false);
@@ -46,7 +61,7 @@ export function LobbyScreen({ characterName, characterId, onStartGame }: LobbySc
     return () => {
       socketService.disconnect();
     };
-  }, []);
+  }, [currentRoomCode, playersInRoom.length, onStartGame]);
 
   const handleCreateRoom = async () => {
     setIsConnecting(true);
@@ -61,8 +76,10 @@ export function LobbyScreen({ characterName, characterId, onStartGame }: LobbySc
 
       if (response.success && response.roomCode && response.roomId) {
         setRoomCode(response.roomCode);
+        setCurrentRoomCode(response.roomCode);
         setCurrentRoomId(response.roomId);
         setIsCreatingRoom(true);
+        setIsHost(true);
 
         // Add self to players list
         setPlayersInRoom([{
@@ -75,6 +92,7 @@ export function LobbyScreen({ characterName, characterId, onStartGame }: LobbySc
           direction: 'down',
           isDodging: false,
           isAlive: true,
+          isReady: false,
           lastUpdateTime: Date.now(),
         }]);
       } else {
@@ -92,9 +110,36 @@ export function LobbyScreen({ characterName, characterId, onStartGame }: LobbySc
     onStartGame('solo', 1);
   };
 
+  const handleToggleReady = () => {
+    const socket = socketService.getSocket();
+    if (!socket) return;
+
+    // Toggle ready status
+    const newReadyStatus = !isPlayerReady;
+    setIsPlayerReady(newReadyStatus);
+
+    if (newReadyStatus) {
+      // Send ready event to server
+      socket.emit('player:ready');
+    }
+  };
+
   const handleStartMultiplayer = () => {
-    if (isCreatingRoom && roomCode && playersInRoom.length >= 1) {
-      onStartGame('multiplayer', playersInRoom.length, roomCode);
+    if (!isHost) {
+      setError('Only the host can start the raid');
+      return;
+    }
+
+    const allReady = playersInRoom.every(p => p.isReady || p.socketId === socketService.getSocketId());
+    if (!allReady && !isPlayerReady) {
+      setError('All players must be ready');
+      return;
+    }
+
+    // Send room:start event to server
+    const socket = socketService.getSocket();
+    if (socket) {
+      socket.emit('room:start');
     }
   };
 
@@ -113,9 +158,11 @@ export function LobbyScreen({ characterName, characterId, onStartGame }: LobbySc
 
       if (response.success && response.roomId && response.players) {
         setCurrentRoomId(response.roomId);
+        setCurrentRoomCode(roomCode);
         setPlayersInRoom(response.players);
         setIsJoiningRoom(false);
         setIsCreatingRoom(true); // Show the room view
+        setIsHost(false);
 
         // Get actual player count from server
         setPlayerCount(response.players.length);
@@ -257,13 +304,32 @@ export function LobbyScreen({ characterName, characterId, onStartGame }: LobbySc
             <div className="players-in-room">
               <h3>Players in Room ({playersInRoom.length})</h3>
               <div className="player-list">
-                {playersInRoom.map((player, index) => (
-                  <div key={player.socketId || index} className="player-item">
-                    <span className="player-name">{player.name}</span>
-                    <span className="player-character">{player.characterId}</span>
-                  </div>
-                ))}
+                {playersInRoom.map((player, index) => {
+                  const isCurrentPlayer = player.socketId === socketService.getSocketId();
+                  return (
+                    <div key={player.socketId || index} className="player-item">
+                      <span className="player-name">
+                        {player.name}
+                        {isCurrentPlayer && ' (You)'}
+                      </span>
+                      <span className="player-character">{player.characterId}</span>
+                      <span className={`player-status ${(isCurrentPlayer ? isPlayerReady : player.isReady) ? 'ready' : 'not-ready'}`}>
+                        {(isCurrentPlayer ? isPlayerReady : player.isReady) ? '✓ Ready' : '○ Not Ready'}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
+            </div>
+
+            <div className="ready-button-container">
+              <button
+                className={`ready-btn ${isPlayerReady ? 'ready' : ''}`}
+                onClick={handleToggleReady}
+                disabled={isPlayerReady}
+              >
+                {isPlayerReady ? '✓ Ready' : 'Mark as Ready'}
+              </button>
             </div>
 
             <div className="player-count-section">
@@ -287,9 +353,19 @@ export function LobbyScreen({ characterName, characterId, onStartGame }: LobbySc
               <button className="secondary-btn" onClick={() => setIsCreatingRoom(false)}>
                 Cancel
               </button>
-              <button className="start-raid-btn" onClick={handleStartMultiplayer}>
-                Start Raid
-              </button>
+              {isHost ? (
+                <button
+                  className="start-raid-btn"
+                  onClick={handleStartMultiplayer}
+                  disabled={!isPlayerReady || !playersInRoom.every(p => p.isReady || p.socketId === socketService.getSocketId())}
+                >
+                  {!isPlayerReady ? 'Mark yourself ready first' : 'Start Raid'}
+                </button>
+              ) : (
+                <button className="start-raid-btn" disabled>
+                  Waiting for host...
+                </button>
+              )}
             </div>
           </div>
         )}

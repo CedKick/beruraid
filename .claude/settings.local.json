@@ -14,7 +14,9 @@
       "Bash(tree:*)",
       "Bash(pnpm --filter @beruraid/client build:*)",
       "Bash(pnpm dev:client:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(pnpm --filter @beruraid/shared build:*)",
+      "Bash(pnpm --filter @beruraid/server build:*)"
     ],
     "deny": [],
     "ask": []
