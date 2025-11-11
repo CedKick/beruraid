@@ -612,6 +612,12 @@ export class GameRoom {
         serverPlayer.addBuff(result.buff);
       }
 
+      // Apply panic buff to player (for Juhee)
+      if (result.panicBuff && result.panicTriggered) {
+        serverPlayer.addBuff(result.panicBuff);
+        console.log(`😱 ${serverPlayer.name} PANICKED! (${result.panicBuff.type})`);
+      }
+
       // Apply slow to boss (for Sung)
       if (result.slowTarget && this.serverBoss) {
         this.serverBoss.applySlow(5000); // 5 seconds slow
@@ -644,6 +650,12 @@ export class GameRoom {
       // Apply buff to player
       if (result.buff) {
         serverPlayer.addBuff(result.buff);
+      }
+
+      // Apply panic buff to player (for Juhee)
+      if (result.panicBuff && result.panicTriggered) {
+        serverPlayer.addBuff(result.panicBuff);
+        console.log(`😱 ${serverPlayer.name} PANICKED! (${result.panicBuff.type})`);
       }
 
       // Stun boss if applicable

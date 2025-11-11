@@ -522,6 +522,8 @@ export class ServerPlayer {
     effect?: SkillEffect;
     buff?: PlayerBuff;
     slowTarget?: boolean;
+    panicTriggered?: boolean;
+    panicBuff?: PlayerBuff;
   } {
     if (this.fernSkills) {
       return this.fernSkills.useSkill1(this.stats.currentMana, this.stats.attack, this.x, this.y, time);
