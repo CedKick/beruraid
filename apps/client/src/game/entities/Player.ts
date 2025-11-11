@@ -411,8 +411,11 @@ export class Player {
   private setupMouseInput() {
     // Handle both left and right clicks
     this.scene.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      console.log(`🖱️ [MOUSE] Pointer down - leftButton: ${pointer.leftButtonDown()}, rightButton: ${pointer.rightButtonDown()}, character: ${this.characterId}, multiplayer: ${this.isMultiplayer}`);
+
       if (pointer.leftButtonDown()) {
         // Left click - Melee attack
+        console.log(`👊 [MOUSE] Left click detected`);
         this.isAutoAttacking = true;
         this.attackType = 'melee';
         this.autoAttackTarget = { x: pointer.worldX, y: pointer.worldY };
@@ -423,18 +426,25 @@ export class Player {
         }
       } else if (pointer.rightButtonDown()) {
         // Right click behavior depends on character
+        console.log(`🖱️ [MOUSE] Right click detected for character: ${this.characterId}`);
+
         if (this.characterId === 'juhee') {
           // Juhee: Heal projectile - NOW with auto-attack system like ranged
+          console.log(`💚 [MOUSE] Juhee right-click - setting up heal projectile`);
           this.isAutoAttacking = true;
           this.attackType = 'ranged'; // Use ranged type for heal projectiles
           this.autoAttackTarget = { x: pointer.worldX, y: pointer.worldY };
 
           // In multiplayer, send first attack immediately
           if (this.isMultiplayer) {
+            console.log(`📡 [MOUSE] Sending right-click to server - target: (${pointer.worldX}, ${pointer.worldY})`);
             this.sendRightClickToServer(pointer.worldX, pointer.worldY);
+          } else {
+            console.log(`🎮 [MOUSE] Solo mode - will handle locally`);
           }
         } else {
           // Other characters: Ranged attack
+          console.log(`🏹 [MOUSE] Other character right-click - ranged attack`);
           this.isAutoAttacking = true;
           this.attackType = 'ranged';
           this.autoAttackTarget = { x: pointer.worldX, y: pointer.worldY };
@@ -525,9 +535,14 @@ export class Player {
   }
 
   private sendRightClickToServer(targetX: number, targetY: number) {
+    console.log(`📡 [RIGHTCLICK] sendRightClickToServer called - target: (${targetX}, ${targetY})`);
     const socket = socketService.getSocket();
-    if (!socket) return;
+    if (!socket) {
+      console.error(`❌ [RIGHTCLICK] No socket available!`);
+      return;
+    }
 
+    console.log(`✅ [RIGHTCLICK] Emitting game:rightclick event to server`);
     socket.emit('game:rightclick', {
       targetX,
       targetY
