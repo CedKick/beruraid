@@ -986,60 +986,18 @@ export class GameScene extends Phaser.Scene {
 
         if (actions.skill1) {
           socket.emit('game:skill', { skillId: 1, targetX: mousePos.worldX, targetY: mousePos.worldY });
-          // Create local visual effects
-          const fernSkills = this.player.getFernSkills();
-          if (fernSkills) {
-            fernSkills.useSkill1(playerStats.currentMana);
-          }
-          const starkSkills = this.player.getStarkSkills();
-          if (starkSkills) {
-            const bosses = [{ x: this.boss.getSprite().x, y: this.boss.getSprite().y }];
-            starkSkills.useSkill1(playerStats.currentMana, bosses);
-          }
-          const gutsSkills = this.player.getGutsSkills();
-          if (gutsSkills) {
-            gutsSkills.useSkill1(playerStats.currentHp, playerStats.maxHp, gutsSkills.isInvincible());
-          }
-          const sungSkills = this.player.getSungSkills();
-          if (sungSkills) {
-            sungSkills.useSkill1(playerStats.currentMana, 0, 0);
-          }
-          const juheeSkills = this.player.getJuheeSkills();
-          if (juheeSkills) {
-            juheeSkills.useSkill1(playerStats.currentMana);
-          }
+          // Note: Visual effects and cooldowns are handled by server state updates
+          // Don't create local effects here to avoid desync
         }
         if (actions.skill2) {
           socket.emit('game:skill', { skillId: 2, targetX: mousePos.worldX, targetY: mousePos.worldY });
-          // Create local visual effects
-          const fernSkills = this.player.getFernSkills();
-          if (fernSkills) {
-            fernSkills.useSkill2(playerStats.currentMana, mousePos.worldX, mousePos.worldY);
-          }
-          const starkSkills = this.player.getStarkSkills();
-          if (starkSkills) {
-            starkSkills.useSkill2(playerStats.currentMana);
-          }
-          const gutsSkills = this.player.getGutsSkills();
-          if (gutsSkills) {
-            gutsSkills.useSkill2(playerStats.currentMana);
-          }
-          const sungSkills = this.player.getSungSkills();
-          if (sungSkills) {
-            sungSkills.useSkill2(playerStats.currentMana);
-          }
-          const juheeSkills = this.player.getJuheeSkills();
-          if (juheeSkills) {
-            juheeSkills.useSkill2(playerStats.currentMana);
-          }
+          // Note: Visual effects and cooldowns are handled by server state updates
+          // Don't create local effects here to avoid desync
         }
         if (actions.ultimate) {
           socket.emit('game:skill', { skillId: 3 });
-          // Create local visual effects
-          const gutsSkills = this.player.getGutsSkills();
-          if (gutsSkills) {
-            gutsSkills.useUltimate(playerStats.currentMana, playerStats.attack);
-          }
+          // Note: Visual effects and cooldowns are handled by server state updates
+          // Don't create local effects here to avoid desync
         }
       }
 
@@ -1091,6 +1049,12 @@ export class GameScene extends Phaser.Scene {
       }
       if (this.player.getGutsSkills()) {
         this.player.getGutsSkills()?.update(deltaInMs);
+      }
+      if (this.player.getSungSkills()) {
+        this.player.getSungSkills()?.update(deltaInMs);
+      }
+      if (this.player.getJuheeSkills()) {
+        this.player.getJuheeSkills()?.update(deltaInMs);
       }
 
       // Update UI from server state
