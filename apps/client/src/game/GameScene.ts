@@ -849,38 +849,29 @@ export class GameScene extends Phaser.Scene {
           }
 
           case 'juhee_heal_projectile': {
-            // Check if it's the local player's skill
-            if (effect.ownerId === socketService.getSocketId() && this.player.getJuheeSkills()) {
-              const targetX = effect.data?.targetX || effect.x + 100;
-              const targetY = effect.data?.targetY || effect.y;
-              this.player.getJuheeSkills()!.createHealProjectileVisual(effect.x, effect.y, targetX, targetY);
-            } else {
-              // For other players, create a standalone heal projectile visual
-              const healCircle = this.add.circle(0, 0, effect.radius || 12, 0x00ff88, 0.8);
-              healCircle.setStrokeStyle(2, 0x00ff00, 1);
-              healCircle.setDepth(90);
+            // Create a standalone heal projectile visual that updates with server position
+            const healCircle = this.add.circle(0, 0, effect.radius || 12, 0x00ff88, 0.8);
+            healCircle.setStrokeStyle(2, 0x00ff00, 1);
+            healCircle.setDepth(90);
 
-              const sparkle = this.add.circle(0, 0, (effect.radius || 12) * 0.6, 0xccffcc, 0.6);
-              sparkle.setDepth(89);
+            const sparkle = this.add.circle(0, 0, (effect.radius || 12) * 0.6, 0xccffcc, 0.6);
+            sparkle.setDepth(89);
 
-              const container = this.add.container(effect.x, effect.y, [sparkle, healCircle]);
-              container.setDepth(90);
+            const container = this.add.container(effect.x, effect.y, [sparkle, healCircle]);
+            container.setDepth(90);
 
-              // Add pulse animation
-              this.tweens.add({
-                targets: container,
-                scale: { from: 1, to: 1.3 },
-                alpha: { from: 0.8, to: 1 },
-                duration: 300,
-                yoyo: true,
-                repeat: -1,
-                ease: 'Sine.easeInOut'
-              });
+            // Add pulse animation
+            this.tweens.add({
+              targets: container,
+              scale: { from: 1, to: 1.3 },
+              alpha: { from: 0.8, to: 1 },
+              duration: 300,
+              yoyo: true,
+              repeat: -1,
+              ease: 'Sine.easeInOut'
+            });
 
-              visual = container;
-            }
-            // Mark as handled
-            visual = { destroy: () => {} } as any;
+            visual = container;
             break;
           }
 
@@ -912,28 +903,18 @@ export class GameScene extends Phaser.Scene {
           }
 
           case 'juhee_healing_circle': {
-            // Check if it's the local player's skill
-            if (effect.ownerId === socketService.getSocketId() && this.player.getJuheeSkills()) {
-              this.player.getJuheeSkills()!.createHealingCircleVisual(effect.x, effect.y);
-            } else {
-              // For other players, create a standalone visual
-              this.createJuheeHealingCircleVisual(effect.x, effect.y);
-            }
-            // Mark as handled
-            visual = { destroy: () => {} } as any;
+            // Always create the healing circle visual
+            this.createJuheeHealingCircleVisual(effect.x, effect.y);
+            // Mark as handled with dummy visual (animation is fire-and-forget)
+            visual = { destroy: () => {}, setVisible: () => {}, setActive: () => {}, setPosition: () => {}, setAlpha: () => {} } as any;
             break;
           }
 
           case 'juhee_blessing': {
-            // Check if it's the local player's skill
-            if (effect.ownerId === socketService.getSocketId() && this.player.getJuheeSkills()) {
-              this.player.getJuheeSkills()!.createBlessingCircleVisual(effect.x, effect.y);
-            } else {
-              // For other players, create a standalone visual
-              this.createJuheeBlessingVisual(effect.x, effect.y);
-            }
-            // Mark as handled
-            visual = { destroy: () => {} } as any;
+            // Always create the blessing visual
+            this.createJuheeBlessingVisual(effect.x, effect.y);
+            // Mark as handled with dummy visual (animation is fire-and-forget)
+            visual = { destroy: () => {}, setVisible: () => {}, setActive: () => {}, setPosition: () => {}, setAlpha: () => {} } as any;
             break;
           }
         }
