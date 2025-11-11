@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, memo } from 'react';
 import { StatsPanel } from './StatsPanel';
 import { Leaderboard, type PlayerScore } from './Leaderboard';
 import './GameUI.css';
@@ -57,7 +57,8 @@ interface GameUIProps {
   gameScene: Phaser.Scene | null;
 }
 
-export function GameUI({ gameScene }: GameUIProps) {
+// PERFORMANCE: Memoize to prevent unnecessary re-renders
+export const GameUI = memo(function GameUI({ gameScene }: GameUIProps) {
   const [gameState, setGameState] = useState<GameState>({
     playerHp: 100,
     playerMaxHp: 100,
@@ -301,4 +302,4 @@ export function GameUI({ gameScene }: GameUIProps) {
       </div>
     </div>
   );
-}
+});

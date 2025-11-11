@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import './Leaderboard.css';
 
 export interface PlayerScore {
@@ -15,7 +16,8 @@ interface LeaderboardProps {
   players: PlayerScore[];
 }
 
-export function Leaderboard({ players }: LeaderboardProps) {
+// PERFORMANCE: Memoize to prevent unnecessary re-renders
+export const Leaderboard = memo(function Leaderboard({ players }: LeaderboardProps) {
   // Sort by DPS descending
   const sortedPlayers = [...players].sort((a, b) => b.dps - a.dps);
 
@@ -64,7 +66,7 @@ export function Leaderboard({ players }: LeaderboardProps) {
       </div>
     </div>
   );
-}
+});
 
 function getCharacterName(characterId: string): string {
   const names: Record<string, string> = {

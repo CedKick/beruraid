@@ -46,6 +46,13 @@ export class GameScene extends Phaser.Scene {
   private serverProjectiles: Map<string, Phaser.GameObjects.GameObject> = new Map();
   private serverSkillEffects: Map<string, Phaser.GameObjects.GameObject> = new Map();
 
+  // Performance optimization: Throttle UI updates
+  private lastUIUpdate = 0;
+  private uiUpdateInterval = 50; // Update UI every 50ms (20 times per second instead of 60)
+
+  // Performance optimization: Cache last movement state to avoid redundant network calls
+  private lastMovementState = { up: false, down: false, left: false, right: false };
+
   constructor() {
     super({ key: 'GameScene' });
   }
@@ -526,11 +533,12 @@ export class GameScene extends Phaser.Scene {
     // Track which attacks are currently in the server state
     const serverAttackIds = new Set(attacks.map((a: any) => a.id));
 
-    // Remove attacks that no longer exist on server
+    // PERFORMANCE: Hide attacks instead of destroying them (object pooling)
     for (const [attackId, attackObj] of this.serverBossAttacks.entries()) {
       if (!serverAttackIds.has(attackId)) {
-        attackObj.destroy();
-        this.serverBossAttacks.delete(attackId);
+        (attackObj as any).setVisible?.(false);
+        (attackObj as any).setActive?.(false);
+        // Don't delete from map, keep for reuse
       }
     }
 
@@ -540,6 +548,10 @@ export class GameScene extends Phaser.Scene {
       const existing = this.serverBossAttacks.get(attack.id);
 
       if (existing) {
+        // PERFORMANCE: Reuse existing object instead of creating new one
+        (existing as any).setVisible?.(true);
+        (existing as any).setActive?.(true);
+
         // Attack already exists, update it
         if (attack.type === 'expandingCircle') {
           // Update expanding circle radius
@@ -625,11 +637,12 @@ export class GameScene extends Phaser.Scene {
     // Track which projectiles are in the server state
     const serverProjectileIds = new Set(projectiles.map((p: any) => p.id));
 
-    // Remove projectiles that no longer exist on server
+    // PERFORMANCE: Hide projectiles instead of destroying them (object pooling)
     for (const [projectileId, projectileObj] of this.serverProjectiles.entries()) {
       if (!serverProjectileIds.has(projectileId)) {
-        projectileObj.destroy();
-        this.serverProjectiles.delete(projectileId);
+        (projectileObj as any).setVisible?.(false);
+        (projectileObj as any).setActive?.(false);
+        // Don't delete from map, keep for reuse
       }
     }
 
@@ -638,6 +651,9 @@ export class GameScene extends Phaser.Scene {
       const existing = this.serverProjectiles.get(projectile.id);
 
       if (existing) {
+        // PERFORMANCE: Reuse existing object
+        (existing as any).setVisible?.(true);
+        (existing as any).setActive?.(true);
         // Update existing projectile position
         (existing as any).setPosition?.(projectile.x, projectile.y);
       } else {
@@ -684,11 +700,12 @@ export class GameScene extends Phaser.Scene {
     // Track which effects are in the server state
     const serverEffectIds = new Set(skillEffects.map((e: any) => e.id));
 
-    // Remove effects that no longer exist on server
+    // PERFORMANCE: Hide effects instead of destroying them (object pooling)
     for (const [effectId, effectObj] of this.serverSkillEffects.entries()) {
       if (!serverEffectIds.has(effectId)) {
-        effectObj.destroy();
-        this.serverSkillEffects.delete(effectId);
+        (effectObj as any).setVisible?.(false);
+        (effectObj as any).setActive?.(false);
+        // Don't delete from map, keep for reuse
       }
     }
 
@@ -697,6 +714,10 @@ export class GameScene extends Phaser.Scene {
       const existing = this.serverSkillEffects.get(effect.id);
 
       if (existing) {
+        // PERFORMANCE: Reuse existing object
+        (existing as any).setVisible?.(true);
+        (existing as any).setActive?.(true);
+
         // Update existing effect
         const progress = (now - effect.createdAt) / (effect.expiresAt - effect.createdAt);
 
@@ -836,8 +857,17 @@ export class GameScene extends Phaser.Scene {
     if (this.isMultiplayerMode) {
       const socket = socketService.getSocket();
       if (socket) {
-        // ALWAYS send movement input, even when no keys pressed (to stop movement)
-        socket.emit('game:movement', movement);
+        // PERFORMANCE: Only send movement if it changed (avoid spamming server with same input)
+        const movementChanged =
+          movement.up !== this.lastMovementState.up ||
+          movement.down !== this.lastMovementState.down ||
+          movement.left !== this.lastMovementState.left ||
+          movement.right !== this.lastMovementState.right;
+
+        if (movementChanged) {
+          socket.emit('game:movement', movement);
+          this.lastMovementState = { ...movement };
+        }
 
         // Send dodge action
         if (actions.dodge) {
@@ -1585,6 +1615,13 @@ export class GameScene extends Phaser.Scene {
   }
 
   private updateUI() {
+    // PERFORMANCE: Throttle UI updates to 20 FPS instead of 60 FPS
+    const now = this.time.now;
+    if (now - this.lastUIUpdate < this.uiUpdateInterval) {
+      return;
+    }
+    this.lastUIUpdate = now;
+
     // UI is handled by React overlay
     const playerStats = this.player.getStats();
 
@@ -1639,6 +1676,13 @@ export class GameScene extends Phaser.Scene {
   }
 
   private updateUIFromServerState(serverState: any) {
+    // PERFORMANCE: Throttle UI updates to 20 FPS instead of 60 FPS
+    const now = Date.now();
+    if (now - this.lastUIUpdate < this.uiUpdateInterval) {
+      return;
+    }
+    this.lastUIUpdate = now;
+
     // Find our player in the server state
     const ourPlayer = serverState.players.find(
       (p: any) => p.socketId === socketService.getSocketId()

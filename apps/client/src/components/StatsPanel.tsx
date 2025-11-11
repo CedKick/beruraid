@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import './StatsPanel.css';
 
 interface PlayerStats {
@@ -24,7 +24,8 @@ interface StatsPanelProps {
   gameScene: Phaser.Scene | null;
 }
 
-export function StatsPanel({ stats, gameScene }: StatsPanelProps) {
+// PERFORMANCE: Memoize to prevent unnecessary re-renders
+export const StatsPanel = memo(function StatsPanel({ stats, gameScene }: StatsPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const addStatPoint = (stat: keyof PlayerStats) => {
@@ -127,7 +128,7 @@ export function StatsPanel({ stats, gameScene }: StatsPanelProps) {
       )}
     </div>
   );
-}
+});
 
 interface StatRowProps {
   label: string;
