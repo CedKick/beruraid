@@ -30,6 +30,38 @@ export interface Projectile {
   angle?: number;
 }
 
+export interface SkillEffect {
+  id: string;
+  ownerId: string;
+  ownerName: string;
+  characterId: string;
+  skillType: 'skill1' | 'skill2' | 'ultimate';
+  effectType:
+    | 'fern_fire_aoe'        // Fern Skill A
+    | 'fern_zoltraak'        // Fern Skill E
+    | 'stark_stun_aoe'       // Stark Skill A
+    | 'stark_shield'         // Stark Skill E (buff)
+    | 'guts_rage_aoe'        // Guts Skill A
+    | 'guts_beast_aura'      // Guts Skill B (buff)
+    | 'guts_berserker_armor'; // Guts Ultimate (buff)
+  x: number;
+  y: number;
+  radius?: number;
+  angle?: number;
+  velocityX?: number;
+  velocityY?: number;
+  createdAt: number;
+  expiresAt: number;
+  damage?: number;
+  data?: any; // For skill-specific data (stacks, multipliers, etc.)
+}
+
+export interface PlayerBuff {
+  type: 'stark_shield' | 'guts_beast' | 'guts_berserker';
+  expiresAt: number;
+  data?: any;
+}
+
 export interface BossState {
   hp: number;
   maxHp: number;
@@ -53,6 +85,7 @@ export interface GameState {
   players: PlayerState[];
   boss: BossState;
   projectiles: Projectile[];
+  skillEffects: SkillEffect[];
   startTime: number;
   elapsedTime: number;
   remainingTime: number;
