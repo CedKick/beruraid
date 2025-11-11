@@ -263,25 +263,30 @@ export class Player {
       // Update Juhee's skill system
       this.juheeSkills.update(delta);
 
-      // Juhee's Skill A (Healing Circle)
-      if (actions.skill1) {
-        const stats = this.statsManager.getStats();
-        const result = this.juheeSkills.useSkill1(stats.currentMana);
-        if (result.success) {
-          this.statsManager.useMana(result.manaCost);
-          // Emit event for healing
-          this.scene.events.emit('juheeUseHealingCircle');
+      // In multiplayer mode, Juhee's skills are handled by the server
+      // Don't consume the actions here so they can be sent to the server
+      if (!this.isMultiplayer) {
+        // SOLO MODE ONLY: Handle skills locally
+        // Juhee's Skill A (Healing Circle)
+        if (actions.skill1) {
+          const stats = this.statsManager.getStats();
+          const result = this.juheeSkills.useSkill1(stats.currentMana);
+          if (result.success) {
+            this.statsManager.useMana(result.manaCost);
+            // Emit event for healing
+            this.scene.events.emit('juheeUseHealingCircle');
+          }
         }
-      }
 
-      // Juhee's Skill E (Blessing of Courage)
-      if (actions.skill2) {
-        const stats = this.statsManager.getStats();
-        const result = this.juheeSkills.useSkill2(stats.currentMana);
-        if (result.success) {
-          this.statsManager.useMana(result.manaCost);
-          // Emit event for buff
-          this.scene.events.emit('juheeUseBlessing');
+        // Juhee's Skill E (Blessing of Courage)
+        if (actions.skill2) {
+          const stats = this.statsManager.getStats();
+          const result = this.juheeSkills.useSkill2(stats.currentMana);
+          if (result.success) {
+            this.statsManager.useMana(result.manaCost);
+            // Emit event for buff
+            this.scene.events.emit('juheeUseBlessing');
+          }
         }
       }
     } else {
@@ -454,7 +459,7 @@ export class Player {
     });
   }
 
-  private updateAutoAttack(time: number) {
+  public updateAutoAttack(time: number) {
     if (!this.isAutoAttacking || !this.autoAttackTarget) return;
 
     // In multiplayer mode, send attacks to server instead of creating locally

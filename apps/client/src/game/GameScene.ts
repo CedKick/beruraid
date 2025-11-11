@@ -1579,6 +1579,9 @@ export class GameScene extends Phaser.Scene {
         this.player.getJuheeSkills()?.update(deltaInMs);
       }
 
+      // Update auto-attack system (for right-click attacks, including Juhee heal projectile)
+      this.player.updateAutoAttack(time);
+
       // Update UI from server state
       if (this.serverGameState) {
         this.updateUIFromServerState(this.serverGameState);
