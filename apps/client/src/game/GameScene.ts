@@ -1507,17 +1507,23 @@ export class GameScene extends Phaser.Scene {
         const mousePos = this.input.activePointer;
 
         if (actions.skill1) {
+          console.log(`[JUHEE DEBUG] Skill1 (A) pressed! Character: ${this.gameConfig?.characterId}`);
           socket.emit('game:skill', { skillId: 1, targetX: mousePos.worldX, targetY: mousePos.worldY });
+          console.log(`[JUHEE DEBUG] Emitted game:skill with skillId: 1`);
           // Note: Visual effects and cooldowns are handled by server state updates
           // Don't create local effects here to avoid desync
         }
         if (actions.skill2) {
+          console.log(`[JUHEE DEBUG] Skill2 (E) pressed! Character: ${this.gameConfig?.characterId}`);
           socket.emit('game:skill', { skillId: 2, targetX: mousePos.worldX, targetY: mousePos.worldY });
+          console.log(`[JUHEE DEBUG] Emitted game:skill with skillId: 2`);
           // Note: Visual effects and cooldowns are handled by server state updates
           // Don't create local effects here to avoid desync
         }
         if (actions.ultimate) {
+          console.log(`[JUHEE DEBUG] Ultimate (R) pressed! Character: ${this.gameConfig?.characterId}`);
           socket.emit('game:skill', { skillId: 3 });
+          console.log(`[JUHEE DEBUG] Emitted game:skill with skillId: 3`);
           // Note: Visual effects and cooldowns are handled by server state updates
           // Don't create local effects here to avoid desync
         }

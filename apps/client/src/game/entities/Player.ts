@@ -263,8 +263,9 @@ export class Player {
       // Update Juhee's skill system
       this.juheeSkills.update(delta);
 
-      // In multiplayer mode, Juhee's skills are handled by the server
-      // Don't consume the actions here so they can be sent to the server
+      // IMPORTANT: Juhee's skills are handled like all other characters in multiplayer
+      // The skills are sent to the server via game:skill event in GameScene.ts
+      // Only in solo mode do we handle them locally
       if (!this.isMultiplayer) {
         // SOLO MODE ONLY: Handle skills locally
         // Juhee's Skill A (Healing Circle)
@@ -289,6 +290,8 @@ export class Player {
           }
         }
       }
+      // NOTE: In multiplayer, the actions object is NOT consumed here
+      // It's passed to GameScene.ts which sends game:skill events to the server
     } else {
       // Default skills for other characters
       if (actions.skill1 && time - this.lastSkill1Time > this.skill1Cooldown) {
