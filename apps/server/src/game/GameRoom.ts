@@ -166,8 +166,10 @@ export class GameRoom {
         effect.y += effect.velocityY * deltaSeconds;
       }
 
-      // Update position of player-following effects (like Sung's Death Gamble)
-      if (effect.effectType === 'sung_death_gamble') {
+      // Update position of player-following effects
+      if (effect.effectType === 'sung_death_gamble' ||
+          effect.effectType === 'stark_shield' ||
+          effect.effectType === 'guts_beast_aura') {
         const owner = this.serverPlayers.get(effect.ownerId);
         if (owner) {
           effect.x = owner.x;
@@ -703,6 +705,11 @@ export class GameRoom {
         this.serverBoss.takeDamage(damageResult.damage);
         serverPlayer.addDamageDealt(damageResult.damage);
         console.log(`💥 ${serverPlayer.name} ultimate dealt ${damageResult.damage.toFixed(1)} instant damage!`);
+      }
+
+      // Add visual effect
+      if (result.effect) {
+        this.skillEffects.push(result.effect);
       }
 
       // Apply buff

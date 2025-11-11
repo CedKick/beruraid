@@ -552,9 +552,9 @@ export class ServerPlayer {
     if (this.fernSkills && targetX !== undefined && targetY !== undefined) {
       return this.fernSkills.useSkill2(this.stats.currentMana, this.stats.attack, this.x, this.y, targetX, targetY, time);
     } else if (this.starkSkills) {
-      return this.starkSkills.useSkill2(this.stats.currentMana, time);
+      return this.starkSkills.useSkill2(this.stats.currentMana, this.x, this.y, time);
     } else if (this.gutsSkills) {
-      return this.gutsSkills.useSkill2(this.stats.currentMana, time);
+      return this.gutsSkills.useSkill2(this.stats.currentMana, this.x, this.y, time);
     } else if (this.sungSkills) {
       return this.sungSkills.useSkill2(this.stats.currentMana, this.x, this.y, time);
     } else if (this.juheeSkills) {
@@ -579,9 +579,10 @@ export class ServerPlayer {
     manaCost?: number;
     damage?: number;
     buff?: PlayerBuff;
+    effect?: SkillEffect;
   } {
     if (this.gutsSkills) {
-      return this.gutsSkills.useUltimate(this.stats.currentMana, this.stats.attack, time);
+      return this.gutsSkills.useUltimate(this.stats.currentMana, this.stats.attack, this.x, this.y, time);
     }
     return { success: false };
   }

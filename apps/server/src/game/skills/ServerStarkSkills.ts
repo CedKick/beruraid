@@ -90,10 +90,11 @@ export class ServerStarkSkills {
     };
   }
 
-  useSkill2(currentMana: number, time: number): {
+  useSkill2(currentMana: number, playerX: number, playerY: number, time: number): {
     success: boolean;
     manaCost: number;
     buff?: PlayerBuff;
+    effect?: SkillEffect;
   } {
     if (this.skill2Cooldown > 0 || currentMana < this.skill2ManaCost) {
       return { success: false, manaCost: 0 };
@@ -111,10 +112,28 @@ export class ServerStarkSkills {
       }
     };
 
+    // Create visual effect that follows the player
+    const effect: SkillEffect = {
+      id: `${this.ownerId}_stark_shield_${this.skillEffectCounter++}`,
+      ownerId: this.ownerId,
+      ownerName: this.ownerName,
+      characterId: 'stark',
+      skillType: 'skill2',
+      effectType: 'stark_shield',
+      x: playerX,
+      y: playerY,
+      radius: 80,
+      createdAt: time,
+      expiresAt: time + this.skill2Duration,
+      damage: 0,
+      data: {}
+    };
+
     return {
       success: true,
       manaCost: this.skill2ManaCost,
-      buff
+      buff,
+      effect
     };
   }
 

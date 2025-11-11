@@ -97,11 +97,12 @@ export class ServerGutsSkills {
     };
   }
 
-  useSkill2(currentMana: number, time: number): {
+  useSkill2(currentMana: number, playerX: number, playerY: number, time: number): {
     success: boolean;
     manaCost: number;
     stunBoss: boolean;
     buff?: PlayerBuff;
+    effect?: SkillEffect;
   } {
     if (this.skill2Cooldown > 0 || currentMana < this.skill2ManaCost) {
       return { success: false, manaCost: 0, stunBoss: false };
@@ -120,19 +121,38 @@ export class ServerGutsSkills {
       data: {}
     };
 
+    // Create visual effect (dark aura that follows the player)
+    const effect: SkillEffect = {
+      id: `${this.ownerId}_guts_beast_${this.skillEffectCounter++}`,
+      ownerId: this.ownerId,
+      ownerName: this.ownerName,
+      characterId: 'guts',
+      skillType: 'skill2',
+      effectType: 'guts_beast_aura',
+      x: playerX,
+      y: playerY,
+      radius: 50,
+      createdAt: time,
+      expiresAt: time + this.skill2Duration,
+      damage: 0,
+      data: {}
+    };
+
     return {
       success: true,
       manaCost: this.skill2ManaCost,
       stunBoss: stunSuccess,
-      buff
+      buff,
+      effect
     };
   }
 
-  useUltimate(currentMana: number, currentAtk: number, time: number): {
+  useUltimate(currentMana: number, currentAtk: number, playerX: number, playerY: number, time: number): {
     success: boolean;
     manaCost: number;
     damage: number;
     buff?: PlayerBuff;
+    effect?: SkillEffect;
   } {
     if (this.ultiCooldown > 0 || currentMana < this.ultiManaCost) {
       return { success: false, manaCost: 0, damage: 0 };
@@ -154,11 +174,29 @@ export class ServerGutsSkills {
       }
     };
 
+    // Create visual effect (fullscreen berserker activation)
+    const effect: SkillEffect = {
+      id: `${this.ownerId}_guts_berserker_${this.skillEffectCounter++}`,
+      ownerId: this.ownerId,
+      ownerName: this.ownerName,
+      characterId: 'guts',
+      skillType: 'ultimate',
+      effectType: 'guts_berserker_armor',
+      x: playerX,
+      y: playerY,
+      radius: 0,
+      createdAt: time,
+      expiresAt: time + 1300, // Only 1.3s for the visual (image + fade)
+      damage: burstDamage,
+      data: {}
+    };
+
     return {
       success: true,
       manaCost: this.ultiManaCost,
       damage: burstDamage,
-      buff
+      buff,
+      effect
     };
   }
 

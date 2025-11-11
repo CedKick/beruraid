@@ -767,8 +767,30 @@ export class GameScene extends Phaser.Scene {
           }
 
           case 'stark_stun_aoe': {
-            // Static AOE
-            (existing as Phaser.GameObjects.Arc).setAlpha(1 - progress);
+            // Static AOE - already animated, no update needed
+            break;
+          }
+
+          case 'stark_shield': {
+            // Follow player position
+            (existing as any).setPosition?.(effect.x, effect.y);
+            break;
+          }
+
+          case 'guts_beast_aura': {
+            // Update graphics position - Graphics need manual position update
+            if (existing && (existing as any).clear) {
+              // This is a Graphics object, we need to redraw it at the new position
+              // Mark it for redraw on next interval
+              (existing as any).needsRedraw = true;
+              (existing as any).targetX = effect.x;
+              (existing as any).targetY = effect.y;
+            }
+            break;
+          }
+
+          case 'guts_berserker_armor': {
+            // Fullscreen effect, no update needed
             break;
           }
 
@@ -831,20 +853,174 @@ export class GameScene extends Phaser.Scene {
           }
 
           case 'stark_stun_aoe': {
-            // Yellow AOE stun effect
-            const circle = this.add.circle(effect.x, effect.y, effect.radius || 120, 0xffff00, 0.4);
-            circle.setStrokeStyle(5, 0xffa500);
-            circle.setDepth(90);
-            visual = circle;
+            // Orange-red shockwave for stun
+            const stunCircle = this.add.circle(effect.x, effect.y, 30, 0xff4500, 0.8);
+            stunCircle.setStrokeStyle(6, 0xff0000, 1);
+            stunCircle.setDepth(90);
+
+            // Expanding shockwave animation
+            this.tweens.add({
+              targets: stunCircle,
+              scale: effect.radius / 30,
+              alpha: 0,
+              duration: 500,
+              ease: 'Power2',
+              onComplete: () => {
+                if (stunCircle && stunCircle.scene) {
+                  stunCircle.destroy();
+                }
+              }
+            });
+
+            // Impact lines effect
+            for (let i = 0; i < 8; i++) {
+              const angle = (Math.PI * 2 * i) / 8;
+              const line = this.add.line(
+                effect.x,
+                effect.y,
+                0,
+                0,
+                Math.cos(angle) * effect.radius,
+                Math.sin(angle) * effect.radius,
+                0xffd700,
+                1
+              );
+              line.setLineWidth(4);
+              line.setDepth(89);
+              line.setOrigin(0, 0);
+
+              this.tweens.add({
+                targets: line,
+                alpha: 0,
+                duration: 300,
+                ease: 'Power2',
+                onComplete: () => {
+                  if (line && line.scene) {
+                    line.destroy();
+                  }
+                }
+              });
+            }
+
+            visual = stunCircle;
+            break;
+          }
+
+          case 'stark_shield': {
+            // Blue shield around player
+            const shield = this.add.circle(effect.x, effect.y, 80, 0x00bfff, 0.3);
+            shield.setStrokeStyle(5, 0x1e90ff, 0.9);
+            shield.setDepth(90);
+
+            // Pulsing animation
+            this.tweens.add({
+              targets: shield,
+              alpha: 0.5,
+              scale: 1.1,
+              duration: 500,
+              yoyo: true,
+              repeat: -1,
+              ease: 'Sine.easeInOut'
+            });
+
+            visual = shield;
             break;
           }
 
           case 'guts_rage_aoe': {
-            // Red expanding rage AOE
-            const circle = this.add.circle(effect.x, effect.y, effect.radius, 0xff0000, 0.7);
-            circle.setStrokeStyle(5, 0x990000);
-            circle.setDepth(90);
-            visual = circle;
+            // Dark red/black berserker AOE
+            const rageCircle = this.add.circle(effect.x, effect.y, effect.radius, 0x8b0000, 0.7);
+            rageCircle.setStrokeStyle(5, 0xff0000, 1.0);
+            rageCircle.setDepth(90);
+
+            // Expanding animation
+            const maxRadius = effect.data?.maxRadius || 120;
+            this.tweens.add({
+              targets: rageCircle,
+              scale: maxRadius / effect.radius,
+              alpha: 0.2,
+              duration: 600,
+              ease: 'Cubic.easeOut',
+              onComplete: () => {
+                this.tweens.add({
+                  targets: rageCircle,
+                  alpha: 0,
+                  duration: 150,
+                  onComplete: () => {
+                    if (rageCircle && rageCircle.scene) {
+                      rageCircle.destroy();
+                    }
+                  }
+                });
+              }
+            });
+
+            visual = rageCircle;
+            break;
+          }
+
+          case 'guts_beast_aura': {
+            // Dark aura for Beast of Darkness (invincibility)
+            const graphics = this.add.graphics();
+            graphics.setDepth(89);
+
+            const duration = 5000; // 5 seconds
+            const startTime = Date.now();
+
+            // Store target position on graphics object
+            (graphics as any).targetX = effect.x;
+            (graphics as any).targetY = effect.y;
+            (graphics as any).needsRedraw = false;
+
+            // Animate pulsing dark aura
+            const updateAura = () => {
+              if (!graphics || !graphics.scene) return;
+
+              const elapsed = Date.now() - startTime;
+              if (elapsed >= duration) {
+                graphics.destroy();
+                return;
+              }
+
+              graphics.clear();
+
+              // Get current position (might be updated by renderSkillEffects)
+              const posX = (graphics as any).targetX || effect.x;
+              const posY = (graphics as any).targetY || effect.y;
+
+              // Pulsing effect
+              const pulse = Math.sin(elapsed / 200) * 0.3 + 0.5;
+              const radius = 50 + pulse * 20;
+
+              // Dark purple/black aura
+              graphics.lineStyle(4, 0x4b0082, pulse);
+              graphics.strokeCircle(posX, posY, radius);
+
+              graphics.lineStyle(2, 0x8b008b, pulse * 0.7);
+              graphics.strokeCircle(posX, posY, radius + 10);
+            };
+
+            // Update every frame
+            const interval = this.time.addEvent({
+              delay: 16,
+              callback: updateAura,
+              loop: true
+            });
+
+            // Cleanup interval after duration
+            this.time.delayedCall(duration, () => {
+              interval.remove();
+            });
+
+            visual = graphics;
+            break;
+          }
+
+          case 'guts_berserker_armor': {
+            // Ultimate berserker visual (fullscreen effect)
+            this.createGutsBerserkerVisual(effect.x, effect.y);
+            // Mark as handled with dummy visual
+            visual = { destroy: () => {}, setVisible: () => {}, setActive: () => {}, setPosition: () => {}, setAlpha: () => {} } as any;
             break;
           }
 
@@ -1086,6 +1262,85 @@ export class GameScene extends Phaser.Scene {
         onComplete: () => sparkle.destroy()
       });
     }
+  }
+
+  private createGutsBerserkerVisual(x: number, y: number) {
+    // Create fullscreen dark overlay
+    const overlay = this.add.rectangle(
+      this.cameras.main.centerX,
+      this.cameras.main.centerY,
+      this.cameras.main.width,
+      this.cameras.main.height,
+      0x000000,
+      0.8
+    );
+    overlay.setDepth(100);
+    overlay.setScrollFactor(0);
+
+    // Create the ulti image
+    const ultiImage = this.add.image(
+      this.cameras.main.centerX,
+      this.cameras.main.centerY,
+      'guts_ulti'
+    );
+    ultiImage.setDepth(101);
+    ultiImage.setScrollFactor(0);
+    ultiImage.setScale(0.8);
+    ultiImage.setAlpha(0);
+
+    // Create blood particles
+    const particles = this.add.particles(0, 0, 'guts_ulti', {
+      speed: { min: 200, max: 400 },
+      angle: { min: 0, max: 360 },
+      scale: { start: 0.3, end: 0 },
+      alpha: { start: 0.8, end: 0 },
+      lifespan: 800,
+      blendMode: 'ADD',
+      frequency: 50,
+      maxParticles: 30,
+      tint: 0xff0000,
+    });
+
+    particles.setDepth(102);
+    particles.setPosition(
+      this.cameras.main.centerX,
+      this.cameras.main.centerY
+    );
+    particles.setScrollFactor(0);
+
+    // Dramatic entrance animation
+    this.tweens.add({
+      targets: ultiImage,
+      alpha: 1,
+      scale: 1,
+      duration: 300,
+      ease: 'Power2'
+    });
+
+    // Screen shake effect
+    this.cameras.main.shake(1000, 0.01);
+
+    // Flash effect
+    this.cameras.main.flash(500, 255, 0, 0);
+
+    // Fade out after 1 second
+    this.time.delayedCall(1000, () => {
+      this.tweens.add({
+        targets: [ultiImage, overlay],
+        alpha: 0,
+        duration: 300,
+        onComplete: () => {
+          if (ultiImage) ultiImage.destroy();
+          overlay.destroy();
+        }
+      });
+
+      // Stop particles
+      particles.stop();
+      this.time.delayedCall(1000, () => {
+        particles.destroy();
+      });
+    });
   }
 
   private createJuheeBlessingVisual(x: number, y: number) {
