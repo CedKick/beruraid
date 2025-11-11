@@ -17,6 +17,7 @@ export interface ClientToServerEvents {
   'game:dodge': () => void;
   'game:attack': (data: { type: 'melee' | 'ranged'; targetX: number; targetY: number }) => void;
   'game:skill': (data: { skillId: number; targetX?: number; targetY?: number }) => void;
+  'game:rightclick': (data: { targetX: number; targetY: number }) => void;
   'game:damage': (damage: DamageEvent) => void;
 
   // Player status

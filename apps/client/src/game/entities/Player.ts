@@ -354,14 +354,22 @@ export class Player {
           this.sendAttackToServer('melee', pointer.worldX, pointer.worldY);
         }
       } else if (pointer.rightButtonDown()) {
-        // Right click - Ranged attack
-        this.isAutoAttacking = true;
-        this.attackType = 'ranged';
-        this.autoAttackTarget = { x: pointer.worldX, y: pointer.worldY };
+        // Right click behavior depends on character
+        if (this.characterId === 'juhee') {
+          // Juhee: Heal projectile
+          if (this.isMultiplayer) {
+            this.sendRightClickToServer(pointer.worldX, pointer.worldY);
+          }
+        } else {
+          // Other characters: Ranged attack
+          this.isAutoAttacking = true;
+          this.attackType = 'ranged';
+          this.autoAttackTarget = { x: pointer.worldX, y: pointer.worldY };
 
-        // In multiplayer, send first attack immediately
-        if (this.isMultiplayer) {
-          this.sendAttackToServer('ranged', pointer.worldX, pointer.worldY);
+          // In multiplayer, send first attack immediately
+          if (this.isMultiplayer) {
+            this.sendAttackToServer('ranged', pointer.worldX, pointer.worldY);
+          }
         }
       }
     });
@@ -427,6 +435,16 @@ export class Player {
 
     socket.emit('game:attack', {
       type,
+      targetX,
+      targetY
+    });
+  }
+
+  private sendRightClickToServer(targetX: number, targetY: number) {
+    const socket = socketService.getSocket();
+    if (!socket) return;
+
+    socket.emit('game:rightclick', {
       targetX,
       targetY
     });

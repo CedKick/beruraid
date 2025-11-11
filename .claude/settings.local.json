@@ -32,7 +32,8 @@
       "Bash(taskkill:*)",
       "Bash(npx kill-port:*)",
       "Bash(timeout /t 3 /nobreak)",
-      "Bash(dir \"C:\\Users\\CedPC\\Desktop\\MesDev\\BeruRaid\\apps\\client\\public\" /b)"
+      "Bash(dir \"C:\\Users\\CedPC\\Desktop\\MesDev\\BeruRaid\\apps\\client\\public\" /b)",
+      "Bash(dir \"C:\\Users\\CedPC\\Desktop\\MesDev\\BeruRaid\\apps\\client\\public\\assets\" /b)"
     ],
     "deny": [],
     "ask": []

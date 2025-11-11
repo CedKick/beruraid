@@ -280,6 +280,14 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Game: Right-click (for Juhee heal projectile)
+  socket.on('game:rightclick', (data) => {
+    const room = roomManager.getRoomBySocketId(socket.id);
+    if (room) {
+      room.handlePlayerRightClick(socket.id, data.targetX, data.targetY);
+    }
+  });
+
   // Disconnect
   socket.on('disconnect', () => {
     console.log(`❌ Client disconnected: ${socket.id}`);

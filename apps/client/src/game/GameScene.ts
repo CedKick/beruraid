@@ -97,6 +97,19 @@ export class GameScene extends Phaser.Scene {
 
     // Load Guts ultimate image
     this.load.image('guts_ulti', '/assets/guts_ulti.png');
+
+    // Load character sprites - Sung
+    this.load.image('sung_up', 'https://res.cloudinary.com/dbg7m8qjd/image/upload/v1762863984/Sung_up_x6eurv.png');
+    this.load.image('sung_down', 'https://res.cloudinary.com/dbg7m8qjd/image/upload/v1762863985/Sung_down_ayd206.png');
+    this.load.image('sung_left', 'https://res.cloudinary.com/dbg7m8qjd/image/upload/v1762864060/Sung_left_enhs5y.png');
+    this.load.image('sung_right', 'https://res.cloudinary.com/dbg7m8qjd/image/upload/v1762864061/Sung_right_exmwub.png');
+    this.load.image('sung_death', 'https://res.cloudinary.com/dbg7m8qjd/image/upload/v1762865606/Sung_death_bqf9ve.png');
+
+    // Load character sprites - Juhee
+    this.load.image('juhee_up', '/assets/juhee_up.png');
+    this.load.image('juhee_down', '/assets/juhee_down.png');
+    this.load.image('juhee_left', '/assets/juhee_left.png');
+    this.load.image('juhee_right', '/assets/juhee_right.png');
   }
 
   create() {
@@ -758,6 +771,12 @@ export class GameScene extends Phaser.Scene {
             (existing as Phaser.GameObjects.Arc).setAlpha(1 - progress);
             break;
           }
+
+          case 'juhee_heal_projectile': {
+            // Moving heal projectile
+            (existing as any).setPosition?.(effect.x, effect.y);
+            break;
+          }
         }
       } else {
         // Create new skill effect visual
@@ -805,6 +824,23 @@ export class GameScene extends Phaser.Scene {
             circle.setStrokeStyle(5, 0x990000);
             circle.setDepth(90);
             visual = circle;
+            break;
+          }
+
+          case 'juhee_heal_projectile': {
+            // Green heal projectile
+            const healCircle = this.add.circle(effect.x, effect.y, effect.radius || 20, 0x00ff00, 0.8);
+            healCircle.setStrokeStyle(3, 0x00ff88);
+            healCircle.setDepth(90);
+
+            // Add sparkle effect
+            const sparkle = this.add.circle(effect.x, effect.y, (effect.radius || 20) * 0.6, 0xccffcc, 0.6);
+            sparkle.setDepth(89);
+
+            // Store both as container
+            const container = this.add.container(effect.x, effect.y, [sparkle, healCircle]);
+            container.setDepth(90);
+            visual = container;
             break;
           }
         }

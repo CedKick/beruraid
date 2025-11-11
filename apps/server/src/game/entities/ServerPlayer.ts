@@ -6,6 +6,7 @@
 import { ServerFernSkills } from '../skills/ServerFernSkills.js';
 import { ServerStarkSkills } from '../skills/ServerStarkSkills.js';
 import { ServerGutsSkills } from '../skills/ServerGutsSkills.js';
+import { ServerJuheeSkills } from '../skills/ServerJuheeSkills.js';
 import { SkillEffect, PlayerBuff, ElementType } from '@beruraid/shared';
 
 export interface Projectile {
@@ -99,6 +100,7 @@ export class ServerPlayer {
 
   // Combat stats tracking
   private totalDamageDealt = 0;
+  private totalHealReceived = 0;
   private totalHealDone = 0;
   private combatStartTime = Date.now();
   private lastDpsUpdateTime = Date.now();
@@ -111,6 +113,7 @@ export class ServerPlayer {
   private fernSkills: ServerFernSkills | null = null;
   private starkSkills: ServerStarkSkills | null = null;
   private gutsSkills: ServerGutsSkills | null = null;
+  private juheeSkills: ServerJuheeSkills | null = null;
 
   // Player buffs
   private buffs: PlayerBuff[] = [];
@@ -148,6 +151,8 @@ export class ServerPlayer {
       this.starkSkills = new ServerStarkSkills(socketId, name);
     } else if (characterId === 'guts') {
       this.gutsSkills = new ServerGutsSkills(socketId, name);
+    } else if (characterId === 'juhee') {
+      this.juheeSkills = new ServerJuheeSkills(socketId, name);
     }
   }
 
@@ -303,6 +308,14 @@ export class ServerPlayer {
     }
 
     return finalDamage;
+  }
+
+  // Heal player
+  heal(amount: number): number {
+    const healAmount = Math.min(amount, this.stats.maxHp - this.stats.currentHp);
+    this.stats.currentHp = Math.min(this.stats.maxHp, this.stats.currentHp + healAmount);
+    this.totalHealReceived += healAmount;
+    return healAmount;
   }
 
   // Use mana
@@ -508,6 +521,17 @@ export class ServerPlayer {
       return this.starkSkills.useSkill2(this.stats.currentMana, time);
     } else if (this.gutsSkills) {
       return this.gutsSkills.useSkill2(this.stats.currentMana, time);
+    }
+    return { success: false };
+  }
+
+  useRightClick(time: number, targetX: number, targetY: number): {
+    success: boolean;
+    manaCost?: number;
+    effect?: SkillEffect;
+  } {
+    if (this.juheeSkills) {
+      return this.juheeSkills.useRightClickHeal(this.stats.currentMana, this.x, this.y, targetX, targetY, time);
     }
     return { success: false };
   }

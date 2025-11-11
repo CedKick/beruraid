@@ -442,6 +442,42 @@ export class GameRoom {
           hitDetected = distance <= currentRadius + bossRadius;
           break;
         }
+
+        case 'juhee_heal_projectile': {
+          // Heal projectile - moves towards target and heals first entity hit (player OR boss)
+          const healAmount = Math.abs(effect.damage || 30);
+          const projectileRadius = effect.radius || 20;
+
+          // Check collision with players first
+          let healApplied = false;
+          for (const player of this.serverPlayers.values()) {
+            const distance = Math.sqrt(
+              Math.pow(player.x - effect.x, 2) + Math.pow(player.y - effect.y, 2)
+            );
+
+            if (distance <= projectileRadius + 30) { // Player collision radius
+              player.heal(healAmount);
+              console.log(`💚 ${ownerPlayer.name}'s heal projectile healed ${player.name} for ${healAmount} HP`);
+              skillsToRemove.push(effect.id);
+              healApplied = true;
+              break;
+            }
+          }
+
+          // If no player hit, check boss collision
+          if (!healApplied) {
+            const distanceToBoss = Math.sqrt(
+              Math.pow(bossState.x - effect.x, 2) + Math.pow(bossState.y - effect.y, 2)
+            );
+
+            if (distanceToBoss <= projectileRadius + bossRadius) {
+              this.serverBoss.heal(healAmount);
+              console.log(`💚 ${ownerPlayer.name}'s heal projectile accidentally healed the BOSS for ${healAmount} HP!`);
+              skillsToRemove.push(effect.id);
+            }
+          }
+          break;
+        }
       }
 
       // Apply damage if hit detected
@@ -524,6 +560,33 @@ export class GameRoom {
       }
 
       console.log(`✨ ${serverPlayer.name} used Skill 2 (${serverPlayer.characterId})`);
+    }
+  }
+
+  /**
+   * Handle player right-click (for Juhee heal projectile)
+   */
+  public handlePlayerRightClick(socketId: string, targetX: number, targetY: number): void {
+    const serverPlayer = this.serverPlayers.get(socketId);
+    if (!serverPlayer) return;
+
+    // Only Juhee can use right-click heal
+    if (serverPlayer.characterId !== 'juhee') return;
+
+    const result = serverPlayer.useRightClick(Date.now(), targetX, targetY);
+
+    if (result.success) {
+      // Consume mana
+      if (result.manaCost) {
+        serverPlayer.useMana(result.manaCost);
+      }
+
+      // Add heal projectile effect
+      if (result.effect) {
+        this.skillEffects.push(result.effect);
+      }
+
+      console.log(`💚 ${serverPlayer.name} used Right-click heal projectile`);
     }
   }
 

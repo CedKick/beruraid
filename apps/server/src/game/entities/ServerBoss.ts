@@ -372,6 +372,12 @@ export class ServerBoss {
     return { barDefeated: false };
   }
 
+  heal(amount: number): number {
+    const healAmount = Math.min(amount, this.maxHp - this.hp);
+    this.hp = Math.min(this.maxHp, this.hp + healAmount);
+    return healAmount;
+  }
+
   stun(duration: number, currentTime: number): void {
     this.isStunned = true;
     this.stunEndTime = currentTime + duration;

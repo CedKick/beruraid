@@ -182,10 +182,14 @@ export function CharacterSelection({ onCharacterSelected }: CharacterSelectionPr
 
               <div className="stats-section">
                 <h3>Base Stats</h3>
-                <div className="stats-grid">
+                <div className="stats-grid-two-cols">
                   <div className="stat-item">
                     <span className="stat-label">HP</span>
                     <span className="stat-value">{currentCharacter.stats.baseHp}</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Mana</span>
+                    <span className="stat-value">{currentCharacter.stats.baseMana}</span>
                   </div>
                   <div className="stat-item">
                     <span className="stat-label">ATK</span>
@@ -196,15 +200,11 @@ export function CharacterSelection({ onCharacterSelected }: CharacterSelectionPr
                     <span className="stat-value">{currentCharacter.stats.baseDef}</span>
                   </div>
                   <div className="stat-item">
-                    <span className="stat-label">Mana</span>
-                    <span className="stat-value">{currentCharacter.stats.baseMana}</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">Crit Rate</span>
+                    <span className="stat-label">Crit%</span>
                     <span className="stat-value">{currentCharacter.stats.baseCritRate}%</span>
                   </div>
                   <div className="stat-item">
-                    <span className="stat-label">Crit DMG</span>
+                    <span className="stat-label">CritDMG</span>
                     <span className="stat-value">{currentCharacter.stats.baseCritDmg}%</span>
                   </div>
                 </div>
