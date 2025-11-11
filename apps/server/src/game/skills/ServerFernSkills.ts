@@ -50,7 +50,7 @@ export class ServerFernSkills {
     }
   }
 
-  useSkill1(currentMana: number, playerX: number, playerY: number, time: number): {
+  useSkill1(currentMana: number, baseAtk: number, playerX: number, playerY: number, time: number): {
     success: boolean;
     manaCost: number;
     damage: number;
@@ -76,10 +76,10 @@ export class ServerFernSkills {
       }
     }
 
-    // Calculate damage with stacks
+    // Calculate damage with stacks and ATK scaling
     const baseDamage = 15;
     const damageMultiplier = Math.pow(1.2, this.skill1StackCount - 1);
-    const totalDamage = baseDamage * damageMultiplier;
+    const totalDamage = baseDamage * damageMultiplier * (1 + baseAtk / 100);
 
     // Update position tracking
     this.lastSkill1Position = { x: playerX, y: playerY };
@@ -116,7 +116,7 @@ export class ServerFernSkills {
     };
   }
 
-  useSkill2(currentMana: number, playerX: number, playerY: number, targetX: number, targetY: number, time: number): {
+  useSkill2(currentMana: number, baseAtk: number, playerX: number, playerY: number, targetX: number, targetY: number, time: number): {
     success: boolean;
     manaCost: number;
     damage: number;
@@ -126,8 +126,8 @@ export class ServerFernSkills {
       return { success: false, manaCost: 0, damage: 0 };
     }
 
-    // Calculate damage
-    const baseDamage = 15 * this.skill2DamageMultiplier;
+    // Calculate damage with ATK scaling
+    const baseDamage = 15 * this.skill2DamageMultiplier * (1 + baseAtk / 100);
 
     // Calculate angle
     const angle = Math.atan2(targetY - playerY, targetX - playerX);

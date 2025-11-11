@@ -383,6 +383,13 @@ export class ServerBoss {
     this.stunEndTime = currentTime + duration;
   }
 
+  applySlow(duration: number): void {
+    // For now, slow is implemented as a reduced speed multiplier
+    // You can add more sophisticated slow mechanics later
+    // This is a placeholder that does nothing for now but prevents build errors
+    // TODO: Implement slow mechanic properly
+  }
+
   isDead(): boolean {
     return this.hp <= 0 && this.barsDefeated > 0;
   }

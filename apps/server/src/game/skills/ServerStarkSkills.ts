@@ -37,7 +37,7 @@ export class ServerStarkSkills {
     }
   }
 
-  useSkill1(currentMana: number, playerX: number, playerY: number, bossX: number, bossY: number, time: number): {
+  useSkill1(currentMana: number, baseDef: number, playerX: number, playerY: number, bossX: number, bossY: number, time: number): {
     success: boolean;
     manaCost: number;
     damage: number;
@@ -61,6 +61,9 @@ export class ServerStarkSkills {
     // Set cooldown
     this.skill1Cooldown = this.skill1CooldownMax;
 
+    // Calculate damage with DEF scaling
+    const scaledDamage = this.skill1Damage * (1 + baseDef / 100);
+
     // Create skill effect
     const effect: SkillEffect = {
       id: `${this.ownerId}_stark_stun_${this.skillEffectCounter++}`,
@@ -74,14 +77,14 @@ export class ServerStarkSkills {
       radius: this.skill1Range,
       createdAt: time,
       expiresAt: time + 500, // 500ms visual effect
-      damage: this.skill1Damage,
+      damage: scaledDamage,
       data: {}
     };
 
     return {
       success: true,
       manaCost: this.skill1ManaCost,
-      damage: this.skill1Damage,
+      damage: scaledDamage,
       stunBoss: true,
       effect
     };

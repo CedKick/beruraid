@@ -443,13 +443,23 @@ export class GameRoom {
           break;
         }
 
+        case 'sung_barrage_strike': {
+          // Melee strike - check if boss is within radius
+          const distance = Math.sqrt(
+            Math.pow(bossState.x - effect.x, 2) + Math.pow(bossState.y - effect.y, 2)
+          );
+          hitDetected = distance <= (effect.radius || 40) + bossRadius;
+          break;
+        }
+
         case 'juhee_heal_projectile': {
-          // Heal projectile - moves towards target and heals first entity hit (player OR boss)
-          const healAmount = Math.abs(effect.damage || 30);
+          // Heal projectile - heals players OR damages boss
+          const healAmount = effect.data?.healAmount || 30;
+          const bossAmount = effect.data?.bossAmount || 30;
           const projectileRadius = effect.radius || 20;
 
           // Check collision with players first
-          let healApplied = false;
+          let hitApplied = false;
           for (const player of this.serverPlayers.values()) {
             const distance = Math.sqrt(
               Math.pow(player.x - effect.x, 2) + Math.pow(player.y - effect.y, 2)
@@ -457,22 +467,25 @@ export class GameRoom {
 
             if (distance <= projectileRadius + 30) { // Player collision radius
               player.heal(healAmount);
+              ownerPlayer.addHealDone(healAmount);
               console.log(`💚 ${ownerPlayer.name}'s heal projectile healed ${player.name} for ${healAmount} HP`);
               skillsToRemove.push(effect.id);
-              healApplied = true;
+              hitApplied = true;
               break;
             }
           }
 
           // If no player hit, check boss collision
-          if (!healApplied) {
+          if (!hitApplied) {
             const distanceToBoss = Math.sqrt(
               Math.pow(bossState.x - effect.x, 2) + Math.pow(bossState.y - effect.y, 2)
             );
 
             if (distanceToBoss <= projectileRadius + bossRadius) {
-              this.serverBoss.heal(healAmount);
-              console.log(`💚 ${ownerPlayer.name}'s heal projectile accidentally healed the BOSS for ${healAmount} HP!`);
+              const damageResult = ownerPlayer.calculateDamage(bossAmount, bossState.defense);
+              this.serverBoss.takeDamage(damageResult.damage);
+              ownerPlayer.addDamageDealt(damageResult.damage);
+              console.log(`💥 ${ownerPlayer.name}'s heal projectile hit the BOSS for ${damageResult.damage.toFixed(1)} damage!`);
               skillsToRemove.push(effect.id);
             }
           }
@@ -521,6 +534,16 @@ export class GameRoom {
       // Add skill effect to tracking
       if (result.effect) {
         this.skillEffects.push(result.effect);
+      }
+
+      // Add buff to player (for Sung)
+      if (result.buff) {
+        serverPlayer.addBuff(result.buff);
+      }
+
+      // Apply slow to boss (for Sung)
+      if (result.slowTarget && this.serverBoss) {
+        this.serverBoss.applySlow(5000); // 5 seconds slow
       }
 
       console.log(`✨ ${serverPlayer.name} used Skill 1 (${serverPlayer.characterId})`);

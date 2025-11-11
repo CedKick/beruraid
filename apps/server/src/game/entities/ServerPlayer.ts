@@ -426,8 +426,25 @@ export class ServerPlayer {
     const damageReduction = effectiveDefense / (effectiveDefense + 1000);
     damage *= (1 - damageReduction);
 
+    // Apply Sung's Death Gamble buff (multiplies attack)
+    const deathGambleBuff = this.buffs.find(buff => buff.type === 'sung_death_gamble_blue' || buff.type === 'sung_death_gamble_red');
+    if (deathGambleBuff && deathGambleBuff.data?.atkMultiplier) {
+      damage *= deathGambleBuff.data.atkMultiplier;
+    }
+
+    // Apply Sung's Barrage Strike crit bonus (stacking)
+    let bonusCritRate = 0;
+    const barrageBuffs = this.buffs.filter(buff => buff.type === 'sung_barrage_crit');
+    if (barrageBuffs.length > 0) {
+      const maxStacks = barrageBuffs[0].data?.maxStacks || 10;
+      const stackCount = Math.min(barrageBuffs.length, maxStacks);
+      const critBonusPerStack = barrageBuffs[0].data?.critBonus || 15;
+      bonusCritRate = (stackCount * critBonusPerStack) / 100; // Convert to decimal
+    }
+
     // Determine crit
-    const didCrit = isCrit !== undefined ? isCrit : Math.random() < this.stats.critRate;
+    const effectiveCritRate = this.stats.critRate + bonusCritRate;
+    const didCrit = isCrit !== undefined ? isCrit : Math.random() < effectiveCritRate;
 
     if (didCrit) {
       damage *= this.stats.critDamage;
@@ -507,16 +524,16 @@ export class ServerPlayer {
     slowTarget?: boolean;
   } {
     if (this.fernSkills) {
-      return this.fernSkills.useSkill1(this.stats.currentMana, this.x, this.y, time);
+      return this.fernSkills.useSkill1(this.stats.currentMana, this.stats.attack, this.x, this.y, time);
     } else if (this.starkSkills && bossX !== undefined && bossY !== undefined) {
-      return this.starkSkills.useSkill1(this.stats.currentMana, this.x, this.y, bossX, bossY, time);
+      return this.starkSkills.useSkill1(this.stats.currentMana, this.stats.defense, this.x, this.y, bossX, bossY, time);
     } else if (this.gutsSkills) {
       const isInvincible = this.hasInvincibilityBuff();
-      return this.gutsSkills.useSkill1(this.stats.currentHp, this.stats.maxHp, isInvincible, this.x, this.y, time);
+      return this.gutsSkills.useSkill1(this.stats.currentHp, this.stats.maxHp, this.stats.defense, isInvincible, this.x, this.y, time);
     } else if (this.sungSkills && bossX !== undefined && bossY !== undefined) {
       return this.sungSkills.useSkill1(this.stats.currentMana, this.stats.attack, this.x, this.y, bossX, bossY, time);
     } else if (this.juheeSkills) {
-      return this.juheeSkills.useSkill1(this.stats.currentMana, this.x, this.y, time);
+      return this.juheeSkills.useSkill1(this.stats.currentMana, this.stats.maxHp, this.x, this.y, time);
     }
     return { success: false };
   }
@@ -533,7 +550,7 @@ export class ServerPlayer {
     panicBuff?: PlayerBuff;
   } {
     if (this.fernSkills && targetX !== undefined && targetY !== undefined) {
-      return this.fernSkills.useSkill2(this.stats.currentMana, this.x, this.y, targetX, targetY, time);
+      return this.fernSkills.useSkill2(this.stats.currentMana, this.stats.attack, this.x, this.y, targetX, targetY, time);
     } else if (this.starkSkills) {
       return this.starkSkills.useSkill2(this.stats.currentMana, time);
     } else if (this.gutsSkills) {
@@ -552,7 +569,7 @@ export class ServerPlayer {
     effect?: SkillEffect;
   } {
     if (this.juheeSkills) {
-      return this.juheeSkills.useRightClickHeal(this.stats.currentMana, this.x, this.y, targetX, targetY, time);
+      return this.juheeSkills.useRightClickHeal(this.stats.currentMana, this.stats.maxHp, this.x, this.y, targetX, targetY, time);
     }
     return { success: false };
   }

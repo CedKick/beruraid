@@ -46,9 +46,12 @@ export class ServerJuheeSkills {
     if (this.panicCooldown > 0) {
       this.panicCooldown = Math.max(0, this.panicCooldown - deltaInSeconds);
     }
+    if (this.rightClickCooldown > 0) {
+      this.rightClickCooldown = Math.max(0, this.rightClickCooldown - deltaInSeconds);
+    }
   }
 
-  useSkill1(currentMana: number, playerX: number, playerY: number, time: number): {
+  useSkill1(currentMana: number, maxHp: number, playerX: number, playerY: number, time: number): {
     success: boolean;
     manaCost: number;
     effect?: SkillEffect;
@@ -62,8 +65,9 @@ export class ServerJuheeSkills {
     // Set cooldown
     this.skill1Cooldown = this.skill1CooldownMax;
 
-    // Random heal amount
-    const healAmount = Math.floor(Math.random() * (this.skill1HealMax - this.skill1HealMin + 1)) + this.skill1HealMin;
+    // Random heal amount with HP scaling
+    const baseHealAmount = Math.floor(Math.random() * (this.skill1HealMax - this.skill1HealMin + 1)) + this.skill1HealMin;
+    const healAmount = Math.floor(baseHealAmount * (1 + maxHp / 1000));
 
     // Create heal effect
     const effect: SkillEffect = {
@@ -172,12 +176,21 @@ export class ServerJuheeSkills {
     };
   }
 
-  // Right-click heal (targeted heal that can heal allies OR boss)
-  useRightClickHeal(currentMana: number, playerX: number, playerY: number, targetX: number, targetY: number, time: number): {
+  // Right-click properties
+  private rightClickCooldown = 0;
+  private rightClickCooldownMax = 1; // 1 second cooldown
+
+  // Right-click heal (targeted heal that can heal allies OR damage boss)
+  useRightClickHeal(currentMana: number, maxHp: number, playerX: number, playerY: number, targetX: number, targetY: number, time: number): {
     success: boolean;
     manaCost: number;
     effect?: SkillEffect;
   } {
+    // Check cooldown
+    if (this.rightClickCooldown > 0) {
+      return { success: false, manaCost: 0 };
+    }
+
     // No mana cost for right-click heal
     const manaCost = 0;
 
@@ -185,9 +198,14 @@ export class ServerJuheeSkills {
       return { success: false, manaCost: 0 };
     }
 
-    const healAmount = 30; // Fixed heal amount for right-click
+    // Set cooldown
+    this.rightClickCooldown = this.rightClickCooldownMax;
 
-    // Create projectile heal effect
+    // Scale heal and damage with HP
+    const healAmount = Math.floor(30 * (1 + maxHp / 1000)); // Heal amount for allies
+    const bossAmount = Math.floor(30 * (1 + maxHp / 1000)); // Damage amount for boss
+
+    // Create projectile heal/damage effect
     const effect: SkillEffect = {
       id: `${this.ownerId}_juhee_heal_proj_${this.skillEffectCounter++}`,
       ownerId: this.ownerId,
@@ -200,12 +218,13 @@ export class ServerJuheeSkills {
       radius: 20,
       createdAt: time,
       expiresAt: time + 5000, // 5 seconds max travel time
-      damage: -healAmount, // Negative = heal
+      damage: bossAmount, // Positive for damage on boss, will heal allies
       data: {
         targetX: targetX,
         targetY: targetY,
         speed: 400, // pixels per second
-        healAmount: healAmount
+        healAmount: healAmount,
+        bossAmount: bossAmount
       }
     };
 

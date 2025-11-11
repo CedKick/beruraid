@@ -47,7 +47,7 @@ export class ServerGutsSkills {
     }
   }
 
-  useSkill1(currentHp: number, maxHp: number, isInvincible: boolean, playerX: number, playerY: number, time: number): {
+  useSkill1(currentHp: number, maxHp: number, baseDef: number, isInvincible: boolean, playerX: number, playerY: number, time: number): {
     success: boolean;
     hpCost: number;
     damage: number;
@@ -67,6 +67,9 @@ export class ServerGutsSkills {
     // Set cooldown
     this.skill1Cooldown = this.skill1CooldownMax;
 
+    // Calculate damage with DEF scaling
+    const scaledDamage = this.skill1Damage * (1 + baseDef / 100);
+
     // Create skill effect
     const effect: SkillEffect = {
       id: `${this.ownerId}_guts_rage_${this.skillEffectCounter++}`,
@@ -80,7 +83,7 @@ export class ServerGutsSkills {
       radius: 40, // Start radius
       createdAt: time,
       expiresAt: time + 600, // 600ms duration
-      damage: this.skill1Damage,
+      damage: scaledDamage,
       data: {
         maxRadius: 120
       }
@@ -89,7 +92,7 @@ export class ServerGutsSkills {
     return {
       success: true,
       hpCost: hpCost,
-      damage: this.skill1Damage,
+      damage: scaledDamage,
       effect
     };
   }

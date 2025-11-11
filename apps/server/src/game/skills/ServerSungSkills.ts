@@ -55,6 +55,7 @@ export class ServerSungSkills {
     success: boolean;
     manaCost: number;
     damage: number;
+    effect?: SkillEffect;
     buff?: PlayerBuff;
     slowTarget: boolean;
   } {
@@ -71,6 +72,30 @@ export class ServerSungSkills {
     // Check for slow
     const slowTarget = Math.random() < this.skill1SlowChance;
 
+    // Calculate angle to target
+    const angle = Math.atan2(targetY - playerY, targetX - playerX);
+    const distance = 60;
+
+    // Create skill effect (projectile towards target)
+    const effect: SkillEffect = {
+      id: `${this.ownerId}_sung_barrage_${this.skillEffectCounter++}`,
+      ownerId: this.ownerId,
+      ownerName: this.ownerName,
+      characterId: 'sung',
+      skillType: 'skill1',
+      effectType: 'sung_barrage_strike',
+      x: playerX + Math.cos(angle) * distance,
+      y: playerY + Math.sin(angle) * distance,
+      radius: 40,
+      createdAt: time,
+      expiresAt: time + 300, // 300ms visual effect
+      damage: damage,
+      data: {
+        angle: angle,
+        slowTarget: slowTarget
+      }
+    };
+
     // Create crit buff (stackable)
     const buff: PlayerBuff = {
       type: 'sung_barrage_crit',
@@ -85,6 +110,7 @@ export class ServerSungSkills {
       success: true,
       manaCost: this.skill1ManaCost,
       damage: damage,
+      effect: effect,
       buff: buff,
       slowTarget: slowTarget
     };
