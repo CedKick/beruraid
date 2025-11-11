@@ -7,6 +7,7 @@ import { ServerFernSkills } from '../skills/ServerFernSkills.js';
 import { ServerStarkSkills } from '../skills/ServerStarkSkills.js';
 import { ServerGutsSkills } from '../skills/ServerGutsSkills.js';
 import { ServerJuheeSkills } from '../skills/ServerJuheeSkills.js';
+import { ServerSungSkills } from '../skills/ServerSungSkills.js';
 import { SkillEffect, PlayerBuff, ElementType } from '@beruraid/shared';
 
 export interface Projectile {
@@ -114,6 +115,7 @@ export class ServerPlayer {
   private starkSkills: ServerStarkSkills | null = null;
   private gutsSkills: ServerGutsSkills | null = null;
   private juheeSkills: ServerJuheeSkills | null = null;
+  private sungSkills: ServerSungSkills | null = null;
 
   // Player buffs
   private buffs: PlayerBuff[] = [];
@@ -153,6 +155,8 @@ export class ServerPlayer {
       this.gutsSkills = new ServerGutsSkills(socketId, name);
     } else if (characterId === 'juhee') {
       this.juheeSkills = new ServerJuheeSkills(socketId, name);
+    } else if (characterId === 'sung') {
+      this.sungSkills = new ServerSungSkills(socketId, name);
     }
   }
 
@@ -190,6 +194,10 @@ export class ServerPlayer {
       this.starkSkills.update(delta);
     } else if (this.gutsSkills) {
       this.gutsSkills.update(delta);
+    } else if (this.sungSkills) {
+      this.sungSkills.update(delta);
+    } else if (this.juheeSkills) {
+      this.juheeSkills.update(delta);
     }
 
     // Update buffs (remove expired)
@@ -495,6 +503,8 @@ export class ServerPlayer {
     hpCost?: number;
     damage?: number;
     effect?: SkillEffect;
+    buff?: PlayerBuff;
+    slowTarget?: boolean;
   } {
     if (this.fernSkills) {
       return this.fernSkills.useSkill1(this.stats.currentMana, this.x, this.y, time);
@@ -503,6 +513,10 @@ export class ServerPlayer {
     } else if (this.gutsSkills) {
       const isInvincible = this.hasInvincibilityBuff();
       return this.gutsSkills.useSkill1(this.stats.currentHp, this.stats.maxHp, isInvincible, this.x, this.y, time);
+    } else if (this.sungSkills && bossX !== undefined && bossY !== undefined) {
+      return this.sungSkills.useSkill1(this.stats.currentMana, this.stats.attack, this.x, this.y, bossX, bossY, time);
+    } else if (this.juheeSkills) {
+      return this.juheeSkills.useSkill1(this.stats.currentMana, this.x, this.y, time);
     }
     return { success: false };
   }
@@ -514,6 +528,9 @@ export class ServerPlayer {
     stunBoss?: boolean;
     effect?: SkillEffect;
     buff?: PlayerBuff;
+    isBlue?: boolean;
+    panicTriggered?: boolean;
+    panicBuff?: PlayerBuff;
   } {
     if (this.fernSkills && targetX !== undefined && targetY !== undefined) {
       return this.fernSkills.useSkill2(this.stats.currentMana, this.x, this.y, targetX, targetY, time);
@@ -521,6 +538,10 @@ export class ServerPlayer {
       return this.starkSkills.useSkill2(this.stats.currentMana, time);
     } else if (this.gutsSkills) {
       return this.gutsSkills.useSkill2(this.stats.currentMana, time);
+    } else if (this.sungSkills) {
+      return this.sungSkills.useSkill2(this.stats.currentMana, time);
+    } else if (this.juheeSkills) {
+      return this.juheeSkills.useSkill2(this.stats.currentMana, this.x, this.y, time);
     }
     return { success: false };
   }

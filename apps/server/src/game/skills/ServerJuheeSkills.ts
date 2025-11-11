@@ -178,8 +178,8 @@ export class ServerJuheeSkills {
     manaCost: number;
     effect?: SkillEffect;
   } {
-    // Small mana cost for right-click heal
-    const manaCost = 5;
+    // No mana cost for right-click heal
+    const manaCost = 0;
 
     if (currentMana < manaCost) {
       return { success: false, manaCost: 0 };

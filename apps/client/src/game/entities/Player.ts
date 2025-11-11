@@ -3,6 +3,8 @@ import { StatsManager } from '../systems/PlayerStats';
 import { FernSkills } from '../skills/FernSkills';
 import { StarkSkills } from '../skills/StarkSkills';
 import { GutsSkills } from '../skills/GutsSkills';
+import { SungSkills } from '../skills/SungSkills';
+import { JuheeSkills } from '../skills/JuheeSkills';
 import { socketService } from '../../networking/SocketService';
 import { CHARACTERS } from '../types/Character';
 import type { ElementType } from '../types/Character';
@@ -24,6 +26,8 @@ export class Player {
   private fernSkills: FernSkills | null = null;
   private starkSkills: StarkSkills | null = null;
   private gutsSkills: GutsSkills | null = null;
+  private sungSkills: SungSkills | null = null;
+  private juheeSkills: JuheeSkills | null = null;
 
   // Skills (for non-Fern characters)
   private skill1Cooldown = 3000;
@@ -84,6 +88,10 @@ export class Player {
       this.starkSkills = new StarkSkills(scene, this.sprite);
     } else if (characterId === 'guts') {
       this.gutsSkills = new GutsSkills(scene, this.sprite);
+    } else if (characterId === 'sung') {
+      this.sungSkills = new SungSkills(scene, this.sprite);
+    } else if (characterId === 'juhee') {
+      this.juheeSkills = new JuheeSkills(scene, this.sprite);
     }
   }
 
@@ -224,6 +232,60 @@ export class Player {
           this.scene.events.emit('gutsUseUltimate', { damage: result.damage });
         }
       }
+    } else if (this.sungSkills) {
+      // Update Sung's skill system
+      this.sungSkills.update(delta);
+
+      // Sung's Skill A (Barrage Strike)
+      if (actions.skill1) {
+        const stats = this.statsManager.getStats();
+        const pointer = this.scene.input.activePointer;
+        const worldX = pointer.x;
+        const worldY = pointer.y;
+
+        // Emit event to notify scene about skill usage (for boss targeting)
+        this.scene.events.emit('sungUseBarrageStrike', {
+          currentMana: stats.currentMana,
+          targetX: worldX,
+          targetY: worldY
+        });
+      }
+
+      // Sung's Skill E (Death Gamble)
+      if (actions.skill2) {
+        const stats = this.statsManager.getStats();
+        const result = this.sungSkills.useSkill2(stats.currentMana);
+        if (result.success) {
+          this.statsManager.useMana(result.manaCost);
+          // Emit event with buff info
+          this.scene.events.emit('sungUseDeathGamble', { isBlue: result.isBlue });
+        }
+      }
+    } else if (this.juheeSkills) {
+      // Update Juhee's skill system
+      this.juheeSkills.update(delta);
+
+      // Juhee's Skill A (Healing Circle)
+      if (actions.skill1) {
+        const stats = this.statsManager.getStats();
+        const result = this.juheeSkills.useSkill1(stats.currentMana);
+        if (result.success) {
+          this.statsManager.useMana(result.manaCost);
+          // Emit event for healing
+          this.scene.events.emit('juheeUseHealingCircle');
+        }
+      }
+
+      // Juhee's Skill E (Blessing of Courage)
+      if (actions.skill2) {
+        const stats = this.statsManager.getStats();
+        const result = this.juheeSkills.useSkill2(stats.currentMana);
+        if (result.success) {
+          this.statsManager.useMana(result.manaCost);
+          // Emit event for buff
+          this.scene.events.emit('juheeUseBlessing');
+        }
+      }
     } else {
       // Default skills for other characters
       if (actions.skill1 && time - this.lastSkill1Time > this.skill1Cooldown) {
@@ -357,6 +419,13 @@ export class Player {
         // Right click behavior depends on character
         if (this.characterId === 'juhee') {
           // Juhee: Heal projectile
+          if (this.juheeSkills) {
+            const stats = this.statsManager.getStats();
+            const result = this.juheeSkills.useRightClick(stats.currentMana, pointer.worldX, pointer.worldY);
+            if (result.success && result.manaCost > 0) {
+              this.statsManager.useMana(result.manaCost);
+            }
+          }
           if (this.isMultiplayer) {
             this.sendRightClickToServer(pointer.worldX, pointer.worldY);
           }
