@@ -717,6 +717,13 @@ export class GameScene extends Phaser.Scene {
   private renderSkillEffects(skillEffects: any[]) {
     const now = Date.now();
 
+    console.log(`🎨 [CLIENT] renderSkillEffects called with ${skillEffects.length} effects`);
+    if (skillEffects.length > 0) {
+      skillEffects.forEach(effect => {
+        console.log(`  - ${effect.effectType} (${effect.id}) at (${effect.x.toFixed(0)}, ${effect.y.toFixed(0)}) owner: ${effect.ownerName}`);
+      });
+    }
+
     // Track which effects are in the server state
     const serverEffectIds = new Set(skillEffects.map((e: any) => e.id));
 
@@ -822,6 +829,7 @@ export class GameScene extends Phaser.Scene {
         }
       } else {
         // Create new skill effect visual
+        console.log(`✨ [CLIENT] Creating NEW visual for effect: ${effect.effectType} (${effect.id})`);
         let visual: Phaser.GameObjects.GameObject | null = null;
 
         switch (effect.effectType) {
@@ -1025,6 +1033,7 @@ export class GameScene extends Phaser.Scene {
           }
 
           case 'juhee_heal_projectile': {
+            console.log(`💚 [CLIENT] Creating Juhee heal projectile at (${effect.x}, ${effect.y})`);
             // Create a standalone heal projectile visual that updates with server position
             const healCircle = this.add.circle(0, 0, effect.radius || 12, 0x00ff88, 0.8);
             healCircle.setStrokeStyle(2, 0x00ff00, 1);
@@ -1048,6 +1057,7 @@ export class GameScene extends Phaser.Scene {
             });
 
             visual = container;
+            console.log(`✅ [CLIENT] Juhee heal projectile created successfully`);
             break;
           }
 
@@ -1079,24 +1089,31 @@ export class GameScene extends Phaser.Scene {
           }
 
           case 'juhee_healing_circle': {
+            console.log(`💚 [CLIENT] Creating Juhee healing circle at (${effect.x}, ${effect.y})`);
             // Always create the healing circle visual
             this.createJuheeHealingCircleVisual(effect.x, effect.y);
             // Mark as handled with dummy visual (animation is fire-and-forget)
             visual = { destroy: () => {}, setVisible: () => {}, setActive: () => {}, setPosition: () => {}, setAlpha: () => {} } as any;
+            console.log(`✅ [CLIENT] Juhee healing circle created successfully`);
             break;
           }
 
           case 'juhee_blessing': {
+            console.log(`✨ [CLIENT] Creating Juhee blessing at (${effect.x}, ${effect.y})`);
             // Always create the blessing visual
             this.createJuheeBlessingVisual(effect.x, effect.y);
             // Mark as handled with dummy visual (animation is fire-and-forget)
             visual = { destroy: () => {}, setVisible: () => {}, setActive: () => {}, setPosition: () => {}, setAlpha: () => {} } as any;
+            console.log(`✅ [CLIENT] Juhee blessing created successfully`);
             break;
           }
         }
 
         if (visual) {
           this.serverSkillEffects.set(effect.id, visual);
+          console.log(`📝 [CLIENT] Visual stored in serverSkillEffects map with id: ${effect.id}`);
+        } else {
+          console.warn(`⚠️ [CLIENT] No visual created for effect: ${effect.effectType} (${effect.id})`);
         }
       }
     }

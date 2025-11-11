@@ -240,6 +240,14 @@ export class GameRoom {
     const allProjectiles = Array.from(this.serverPlayers.values())
       .flatMap(player => player.getProjectiles());
 
+    // LOG skillEffects BEFORE sending
+    if (this.skillEffects.length > 0) {
+      console.log(`📡 [GET_STATE] Sending ${this.skillEffects.length} skillEffects to clients:`);
+      this.skillEffects.forEach(effect => {
+        console.log(`  - ${effect.effectType} (${effect.id}) at (${effect.x.toFixed(0)}, ${effect.y.toFixed(0)}) owner: ${effect.ownerName}`);
+      });
+    }
+
     return {
       roomId: this.id,
       players: playerStates,
@@ -587,43 +595,75 @@ export class GameRoom {
    * Handle player skill 1 (A key)
    */
   public handlePlayerSkill1(socketId: string): void {
+    console.log(`🎯 [SKILL1] handlePlayerSkill1 called for socketId: ${socketId}`);
+
     const serverPlayer = this.serverPlayers.get(socketId);
-    if (!serverPlayer || !this.serverBoss) return;
+    if (!serverPlayer) {
+      console.log(`❌ [SKILL1] No serverPlayer found for socketId: ${socketId}`);
+      return;
+    }
+    if (!this.serverBoss) {
+      console.log(`❌ [SKILL1] No boss found`);
+      return;
+    }
 
     const bossState = this.serverBoss.getState();
+    console.log(`🎯 [SKILL1] Player ${serverPlayer.name} (${serverPlayer.characterId}) attempting Skill1`);
+
     const result = serverPlayer.useSkill1(Date.now(), bossState.x, bossState.y);
+
+    console.log(`🎯 [SKILL1] Result:`, {
+      success: result.success,
+      hasEffect: !!result.effect,
+      effectType: result.effect?.effectType,
+      effectId: result.effect?.id,
+      effectPosition: result.effect ? `(${result.effect.x}, ${result.effect.y})` : 'N/A',
+      manaCost: result.manaCost,
+      hasBuff: !!result.buff,
+      panicTriggered: result.panicTriggered
+    });
 
     if (result.success) {
       // Consume resources
       if (result.manaCost) {
         serverPlayer.useMana(result.manaCost);
+        console.log(`💧 [SKILL1] Consumed ${result.manaCost} mana`);
       }
       if (result.hpCost) {
         serverPlayer.takeDamage(result.hpCost);
+        console.log(`❤️ [SKILL1] Consumed ${result.hpCost} HP`);
       }
 
       // Add skill effect to tracking
       if (result.effect) {
         this.skillEffects.push(result.effect);
+        console.log(`✅ [SKILL1] Effect added to skillEffects array. Total effects: ${this.skillEffects.length}`);
+        console.log(`📊 [SKILL1] Effect details:`, JSON.stringify(result.effect, null, 2));
+      } else {
+        console.log(`⚠️ [SKILL1] No effect to add!`);
       }
 
       // Add buff to player (for Sung)
       if (result.buff) {
         serverPlayer.addBuff(result.buff);
+        console.log(`💪 [SKILL1] Buff added: ${result.buff.type}`);
       }
 
       // Apply panic buff to player (for Juhee)
       if (result.panicBuff && result.panicTriggered) {
         serverPlayer.addBuff(result.panicBuff);
-        console.log(`😱 ${serverPlayer.name} PANICKED! (${result.panicBuff.type})`);
+        console.log(`😱 [SKILL1] ${serverPlayer.name} PANICKED! (${result.panicBuff.type})`);
       }
 
       // Apply slow to boss (for Sung)
       if (result.slowTarget && this.serverBoss) {
         this.serverBoss.applySlow(5000); // 5 seconds slow
+        console.log(`🐌 [SKILL1] Boss slowed for 5 seconds`);
       }
 
-      console.log(`✨ ${serverPlayer.name} used Skill 1 (${serverPlayer.characterId})`);
+      console.log(`✨ [SKILL1] ${serverPlayer.name} successfully used Skill 1 (${serverPlayer.characterId})`);
+    } else {
+      console.log(`❌ [SKILL1] Skill 1 failed for ${serverPlayer.name}`);
     }
   }
 
@@ -631,41 +671,72 @@ export class GameRoom {
    * Handle player skill 2 (E key)
    */
   public handlePlayerSkill2(socketId: string, targetX?: number, targetY?: number): void {
+    console.log(`🎯 [SKILL2] handlePlayerSkill2 called for socketId: ${socketId}, target: (${targetX}, ${targetY})`);
+
     const serverPlayer = this.serverPlayers.get(socketId);
-    if (!serverPlayer || !this.serverBoss) return;
+    if (!serverPlayer) {
+      console.log(`❌ [SKILL2] No serverPlayer found for socketId: ${socketId}`);
+      return;
+    }
+    if (!this.serverBoss) {
+      console.log(`❌ [SKILL2] No boss found`);
+      return;
+    }
+
+    console.log(`🎯 [SKILL2] Player ${serverPlayer.name} (${serverPlayer.characterId}) attempting Skill2`);
 
     const result = serverPlayer.useSkill2(Date.now(), targetX, targetY);
+
+    console.log(`🎯 [SKILL2] Result:`, {
+      success: result.success,
+      hasEffect: !!result.effect,
+      effectType: result.effect?.effectType,
+      effectId: result.effect?.id,
+      effectPosition: result.effect ? `(${result.effect.x}, ${result.effect.y})` : 'N/A',
+      manaCost: result.manaCost,
+      hasBuff: !!result.buff,
+      panicTriggered: result.panicTriggered,
+      stunBoss: result.stunBoss
+    });
 
     if (result.success) {
       // Consume mana
       if (result.manaCost) {
         serverPlayer.useMana(result.manaCost);
+        console.log(`💧 [SKILL2] Consumed ${result.manaCost} mana`);
       }
 
       // Add skill effect
       if (result.effect) {
         this.skillEffects.push(result.effect);
+        console.log(`✅ [SKILL2] Effect added to skillEffects array. Total effects: ${this.skillEffects.length}`);
+        console.log(`📊 [SKILL2] Effect details:`, JSON.stringify(result.effect, null, 2));
+      } else {
+        console.log(`⚠️ [SKILL2] No effect to add!`);
       }
 
       // Apply buff to player
       if (result.buff) {
         serverPlayer.addBuff(result.buff);
+        console.log(`💪 [SKILL2] Buff added: ${result.buff.type}`);
       }
 
       // Apply panic buff to player (for Juhee)
       if (result.panicBuff && result.panicTriggered) {
         serverPlayer.addBuff(result.panicBuff);
-        console.log(`😱 ${serverPlayer.name} PANICKED! (${result.panicBuff.type})`);
+        console.log(`😱 [SKILL2] ${serverPlayer.name} PANICKED! (${result.panicBuff.type})`);
       }
 
       // Stun boss if applicable
       if (result.stunBoss) {
         const stunDuration = serverPlayer.getStunDuration();
         this.serverBoss.stun(stunDuration, Date.now());
-        console.log(`💫 ${serverPlayer.name} stunned the boss for ${stunDuration}ms!`);
+        console.log(`💫 [SKILL2] ${serverPlayer.name} stunned the boss for ${stunDuration}ms!`);
       }
 
-      console.log(`✨ ${serverPlayer.name} used Skill 2 (${serverPlayer.characterId})`);
+      console.log(`✨ [SKILL2] ${serverPlayer.name} successfully used Skill 2 (${serverPlayer.characterId})`);
+    } else {
+      console.log(`❌ [SKILL2] Skill 2 failed for ${serverPlayer.name}`);
     }
   }
 
@@ -673,26 +744,53 @@ export class GameRoom {
    * Handle player right-click (for Juhee heal projectile)
    */
   public handlePlayerRightClick(socketId: string, targetX: number, targetY: number): void {
+    console.log(`🎯 [RIGHT_CLICK] handlePlayerRightClick called for socketId: ${socketId}, target: (${targetX}, ${targetY})`);
+
     const serverPlayer = this.serverPlayers.get(socketId);
-    if (!serverPlayer) return;
+    if (!serverPlayer) {
+      console.log(`❌ [RIGHT_CLICK] No serverPlayer found for socketId: ${socketId}`);
+      return;
+    }
 
     // Only Juhee can use right-click heal
-    if (serverPlayer.characterId !== 'juhee') return;
+    if (serverPlayer.characterId !== 'juhee') {
+      console.log(`❌ [RIGHT_CLICK] Player ${serverPlayer.name} is not Juhee (${serverPlayer.characterId})`);
+      return;
+    }
+
+    console.log(`🎯 [RIGHT_CLICK] Juhee ${serverPlayer.name} attempting right-click heal`);
 
     const result = serverPlayer.useRightClick(Date.now(), targetX, targetY);
+
+    console.log(`🎯 [RIGHT_CLICK] Result:`, {
+      success: result.success,
+      hasEffect: !!result.effect,
+      effectType: result.effect?.effectType,
+      effectId: result.effect?.id,
+      effectPosition: result.effect ? `(${result.effect.x}, ${result.effect.y})` : 'N/A',
+      velocity: result.effect ? `(${result.effect.velocityX}, ${result.effect.velocityY})` : 'N/A',
+      manaCost: result.manaCost
+    });
 
     if (result.success) {
       // Consume mana
       if (result.manaCost) {
         serverPlayer.useMana(result.manaCost);
+        console.log(`💧 [RIGHT_CLICK] Consumed ${result.manaCost} mana`);
       }
 
       // Add heal projectile effect
       if (result.effect) {
         this.skillEffects.push(result.effect);
+        console.log(`✅ [RIGHT_CLICK] Heal projectile added to skillEffects array. Total effects: ${this.skillEffects.length}`);
+        console.log(`📊 [RIGHT_CLICK] Effect details:`, JSON.stringify(result.effect, null, 2));
+      } else {
+        console.log(`⚠️ [RIGHT_CLICK] No effect to add!`);
       }
 
-      console.log(`💚 ${serverPlayer.name} used Right-click heal projectile`);
+      console.log(`💚 [RIGHT_CLICK] ${serverPlayer.name} successfully used Right-click heal projectile`);
+    } else {
+      console.log(`❌ [RIGHT_CLICK] Right-click heal failed for ${serverPlayer.name}`);
     }
   }
 
