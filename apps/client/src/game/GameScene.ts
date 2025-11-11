@@ -779,27 +779,22 @@ export class GameScene extends Phaser.Scene {
           }
 
           case 'sung_barrage_strike': {
-            // Static AOE effect, just update alpha
-            (existing as Phaser.GameObjects.Arc).setAlpha(1 - progress);
+            // No update needed - animation handled by skill class
             break;
           }
 
           case 'sung_death_gamble': {
-            // Moving AOE circle (follows player position from server)
-            (existing as any).setPosition?.(effect.x, effect.y);
-            (existing as Phaser.GameObjects.Arc).setAlpha(0.4 - progress * 0.1);
+            // No update needed - animation handled by skill class
             break;
           }
 
           case 'juhee_healing_circle': {
-            // Static heal AOE
-            (existing as Phaser.GameObjects.Arc).setAlpha(1 - progress);
+            // No update needed - animation handled by skill class
             break;
           }
 
           case 'juhee_blessing': {
-            // Static blessing AOE
-            (existing as Phaser.GameObjects.Arc).setAlpha(1 - progress);
+            // No update needed - animation handled by skill class
             break;
           }
         }
@@ -854,59 +849,91 @@ export class GameScene extends Phaser.Scene {
           }
 
           case 'juhee_heal_projectile': {
-            // Green heal projectile
-            // Children positions are relative to container (0, 0)
-            const healCircle = this.add.circle(0, 0, effect.radius || 20, 0x00ff00, 0.8);
-            healCircle.setStrokeStyle(3, 0x00ff88);
-            healCircle.setDepth(90);
+            // Check if it's the local player's skill
+            if (effect.ownerId === socketService.getSocketId() && this.player.getJuheeSkills()) {
+              const targetX = effect.data?.targetX || effect.x + 100;
+              const targetY = effect.data?.targetY || effect.y;
+              this.player.getJuheeSkills()!.createHealProjectileVisual(effect.x, effect.y, targetX, targetY);
+            } else {
+              // For other players, create a standalone heal projectile visual
+              const healCircle = this.add.circle(0, 0, effect.radius || 12, 0x00ff88, 0.8);
+              healCircle.setStrokeStyle(2, 0x00ff00, 1);
+              healCircle.setDepth(90);
 
-            // Add sparkle effect
-            const sparkle = this.add.circle(0, 0, (effect.radius || 20) * 0.6, 0xccffcc, 0.6);
-            sparkle.setDepth(89);
+              const sparkle = this.add.circle(0, 0, (effect.radius || 12) * 0.6, 0xccffcc, 0.6);
+              sparkle.setDepth(89);
 
-            // Store both as container at effect position
-            const container = this.add.container(effect.x, effect.y, [sparkle, healCircle]);
-            container.setDepth(90);
-            visual = container;
+              const container = this.add.container(effect.x, effect.y, [sparkle, healCircle]);
+              container.setDepth(90);
+
+              // Add pulse animation
+              this.tweens.add({
+                targets: container,
+                scale: { from: 1, to: 1.3 },
+                alpha: { from: 0.8, to: 1 },
+                duration: 300,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+              });
+
+              visual = container;
+            }
+            // Mark as handled
+            visual = { destroy: () => {} } as any;
             break;
           }
 
           case 'sung_barrage_strike': {
-            // Purple dagger strike AOE
-            const circle = this.add.circle(effect.x, effect.y, effect.radius || 40, 0x8b00ff, 0.6);
-            circle.setStrokeStyle(4, 0xda70d6, 1);
-            circle.setDepth(90);
-            visual = circle;
+            // Check if it's the local player's skill
+            if (effect.ownerId === socketService.getSocketId() && this.player.getSungSkills()) {
+              this.player.getSungSkills()!.createBarrageStrikeVisual(effect.x, effect.y);
+            } else {
+              // For other players, create a standalone visual
+              this.createSungBarrageVisual(effect.x, effect.y);
+            }
+            // Mark as handled
+            visual = { destroy: () => {} } as any;
             break;
           }
 
           case 'sung_death_gamble': {
-            // Blue or Red circle (based on isBlue)
             const isBlue = effect.data?.isBlue || false;
-            const color = isBlue ? 0x00bfff : 0xff0000;
-            const glowColor = isBlue ? 0x87ceeb : 0xff6347;
-            const circle = this.add.circle(effect.x, effect.y, effect.radius || 80, color, 0.4);
-            circle.setStrokeStyle(5, glowColor, 0.9);
-            circle.setDepth(90);
-            visual = circle;
+            // Check if it's the local player's skill
+            if (effect.ownerId === socketService.getSocketId() && this.player.getSungSkills()) {
+              this.player.getSungSkills()!.createDeathGambleVisual(effect.x, effect.y, isBlue, this.player.getSprite());
+            } else {
+              // For other players, create a standalone visual
+              this.createSungDeathGambleVisual(effect.x, effect.y, isBlue);
+            }
+            // Mark as handled
+            visual = { destroy: () => {} } as any;
             break;
           }
 
           case 'juhee_healing_circle': {
-            // Green healing circle
-            const healCircle = this.add.circle(effect.x, effect.y, effect.radius || 120, 0x00ff88, 0.45);
-            healCircle.setStrokeStyle(4, 0x00ff00, 1);
-            healCircle.setDepth(90);
-            visual = healCircle;
+            // Check if it's the local player's skill
+            if (effect.ownerId === socketService.getSocketId() && this.player.getJuheeSkills()) {
+              this.player.getJuheeSkills()!.createHealingCircleVisual(effect.x, effect.y);
+            } else {
+              // For other players, create a standalone visual
+              this.createJuheeHealingCircleVisual(effect.x, effect.y);
+            }
+            // Mark as handled
+            visual = { destroy: () => {} } as any;
             break;
           }
 
           case 'juhee_blessing': {
-            // Golden blessing circle
-            const blessCircle = this.add.circle(effect.x, effect.y, effect.radius || 150, 0xffd700, 0.4);
-            blessCircle.setStrokeStyle(5, 0xffaa00, 1);
-            blessCircle.setDepth(90);
-            visual = blessCircle;
+            // Check if it's the local player's skill
+            if (effect.ownerId === socketService.getSocketId() && this.player.getJuheeSkills()) {
+              this.player.getJuheeSkills()!.createBlessingCircleVisual(effect.x, effect.y);
+            } else {
+              // For other players, create a standalone visual
+              this.createJuheeBlessingVisual(effect.x, effect.y);
+            }
+            // Mark as handled
+            visual = { destroy: () => {} } as any;
             break;
           }
         }
@@ -914,6 +941,245 @@ export class GameScene extends Phaser.Scene {
         if (visual) {
           this.serverSkillEffects.set(effect.id, visual);
         }
+      }
+    }
+  }
+
+  // Helper methods to create visual effects for other players' skills
+  private createSungBarrageVisual(x: number, y: number) {
+    const radius = 80;
+    const duration = 300;
+
+    const aoeCircle = this.add.circle(x, y, radius, 0x8b00ff, 0.5);
+    aoeCircle.setStrokeStyle(4, 0xda70d6, 1);
+    aoeCircle.setDepth(12);
+
+    const innerCircle = this.add.circle(x, y, radius * 0.6, 0x8b00ff, 0.3);
+    innerCircle.setStrokeStyle(3, 0xda70d6, 0.8);
+    innerCircle.setDepth(11);
+
+    this.tweens.add({
+      targets: aoeCircle,
+      scale: 1.4,
+      alpha: 0,
+      duration: duration,
+      ease: 'Cubic.easeOut',
+      onComplete: () => aoeCircle.destroy()
+    });
+
+    this.tweens.add({
+      targets: innerCircle,
+      scale: 1.2,
+      alpha: 0,
+      duration: duration,
+      ease: 'Cubic.easeOut',
+      onComplete: () => innerCircle.destroy()
+    });
+
+    // Add dagger effects
+    const daggerCount = 12;
+    for (let i = 0; i < daggerCount; i++) {
+      const angle = (Math.PI * 2 * i) / daggerCount;
+      const distance = radius * 0.8;
+      const dagger = this.add.circle(x, y, 8, 0xda70d6, 1);
+      dagger.setStrokeStyle(2, 0xffffff, 0.8);
+      dagger.setDepth(13);
+
+      this.tweens.add({
+        targets: dagger,
+        x: x + Math.cos(angle) * distance,
+        y: y + Math.sin(angle) * distance,
+        scale: 0.3,
+        alpha: 0,
+        duration: 300,
+        ease: 'Cubic.easeOut',
+        onComplete: () => dagger.destroy()
+      });
+    }
+  }
+
+  private createSungDeathGambleVisual(x: number, y: number, isBlue: boolean) {
+    const radius = 80;
+    const color = isBlue ? 0x00bfff : 0xff0000;
+    const glowColor = isBlue ? 0x87ceeb : 0xff6347;
+    const duration = 5000;
+
+    const circle = this.add.circle(x, y, radius, color, 0.35);
+    circle.setStrokeStyle(5, glowColor, 0.9);
+    circle.setDepth(9);
+
+    const innerCircle = this.add.circle(x, y, radius * 0.6, color, 0.2);
+    innerCircle.setStrokeStyle(3, glowColor, 0.7);
+    innerCircle.setDepth(9);
+
+    this.tweens.add({
+      targets: circle,
+      scale: { from: 1, to: 1.2 },
+      alpha: { from: 0.35, to: 0.55 },
+      duration: 600,
+      yoyo: true,
+      repeat: Math.floor(duration / 1200),
+      ease: 'Sine.easeInOut'
+    });
+
+    this.tweens.add({
+      targets: innerCircle,
+      scale: { from: 1, to: 0.85 },
+      alpha: { from: 0.2, to: 0.4 },
+      duration: 600,
+      yoyo: true,
+      repeat: Math.floor(duration / 1200),
+      ease: 'Sine.easeInOut'
+    });
+
+    this.time.delayedCall(duration, () => {
+      if (circle && circle.scene) circle.destroy();
+      if (innerCircle && innerCircle.scene) innerCircle.destroy();
+    });
+  }
+
+  private createJuheeHealingCircleVisual(x: number, y: number) {
+    const radius = 120;
+    const duration = 500;
+
+    const healCircle = this.add.circle(x, y, radius, 0x00ff88, 0.45);
+    healCircle.setStrokeStyle(4, 0x00ff00, 1);
+    healCircle.setDepth(10);
+
+    const innerCircle = this.add.circle(x, y, radius * 0.5, 0x32cd32, 0.3);
+    innerCircle.setStrokeStyle(3, 0x98fb98, 0.8);
+    innerCircle.setDepth(10);
+
+    this.tweens.add({
+      targets: healCircle,
+      scale: 1.3,
+      alpha: 0.15,
+      duration: duration,
+      ease: 'Cubic.easeOut',
+      onComplete: () => {
+        this.tweens.add({
+          targets: healCircle,
+          alpha: 0,
+          duration: 200,
+          onComplete: () => healCircle.destroy()
+        });
+      }
+    });
+
+    this.tweens.add({
+      targets: innerCircle,
+      scale: 0.7,
+      alpha: 0.1,
+      duration: duration,
+      ease: 'Cubic.easeOut',
+      onComplete: () => {
+        this.tweens.add({
+          targets: innerCircle,
+          alpha: 0,
+          duration: 200,
+          onComplete: () => innerCircle.destroy()
+        });
+      }
+    });
+
+    // Add sparkles
+    const sparkleCount = 12;
+    for (let i = 0; i < sparkleCount; i++) {
+      const angle = (Math.PI * 2 * i) / sparkleCount;
+      const startRadius = radius * 0.4;
+      const sparkleX = x + Math.cos(angle) * startRadius;
+      const sparkleY = y + Math.sin(angle) * startRadius;
+
+      const sparkle = this.add.circle(sparkleX, sparkleY, 6, 0xffffff, 1);
+      sparkle.setDepth(11);
+      sparkle.setStrokeStyle(2, 0x00ff00, 0.8);
+
+      this.tweens.add({
+        targets: sparkle,
+        x: x + Math.cos(angle) * radius * 1.2,
+        y: sparkleY - 40,
+        scale: 0.3,
+        alpha: 0,
+        duration: 700,
+        ease: 'Cubic.easeOut',
+        onComplete: () => sparkle.destroy()
+      });
+    }
+  }
+
+  private createJuheeBlessingVisual(x: number, y: number) {
+    const radius = 150;
+    const duration = 500;
+
+    const blessCircle = this.add.circle(x, y, radius, 0xffd700, 0.4);
+    blessCircle.setStrokeStyle(5, 0xffaa00, 1);
+    blessCircle.setDepth(10);
+
+    const innerRing = this.add.circle(x, y, radius * 0.6, 0xffa500, 0.3);
+    innerRing.setStrokeStyle(4, 0xffd700, 0.9);
+    innerRing.setDepth(10);
+
+    this.tweens.add({
+      targets: blessCircle,
+      scale: 1.4,
+      alpha: 0.05,
+      duration: duration,
+      ease: 'Cubic.easeOut',
+      onComplete: () => {
+        this.tweens.add({
+          targets: blessCircle,
+          alpha: 0,
+          duration: 200,
+          onComplete: () => blessCircle.destroy()
+        });
+      }
+    });
+
+    this.tweens.add({
+      targets: innerRing,
+      scale: 1.2,
+      alpha: 0,
+      duration: duration,
+      ease: 'Cubic.easeOut',
+      onComplete: () => {
+        this.tweens.add({
+          targets: innerRing,
+          alpha: 0,
+          duration: 200,
+          onComplete: () => innerRing.destroy()
+        });
+      }
+    });
+
+    // Add radial burst
+    const rayCount = 16;
+    for (let i = 0; i < rayCount; i++) {
+      const angle = (Math.PI * 2 * i) / rayCount;
+      const endRadius = radius * 1.3;
+
+      const particlesPerRay = 5;
+      for (let j = 0; j < particlesPerRay; j++) {
+        const delay = j * 40;
+        this.time.delayedCall(delay, () => {
+          const distance = radius * 0.3 + (endRadius - radius * 0.3) * (j / particlesPerRay);
+          const particleX = x + Math.cos(angle) * distance;
+          const particleY = y + Math.sin(angle) * distance;
+
+          const particle = this.add.circle(particleX, particleY, 5, 0xffd700, 0.9);
+          particle.setDepth(11);
+          particle.setStrokeStyle(2, 0xffffff, 0.7);
+
+          this.tweens.add({
+            targets: particle,
+            x: x + Math.cos(angle) * endRadius * 1.2,
+            y: y + Math.sin(angle) * endRadius * 1.2,
+            scale: 0.2,
+            alpha: 0,
+            duration: 500 - delay,
+            ease: 'Cubic.easeOut',
+            onComplete: () => particle.destroy()
+          });
+        });
       }
     }
   }

@@ -52,13 +52,18 @@ export class JuheeSkills {
   }
 
   private createHealingCircle() {
+    this.createHealingCircleVisual(this.player.x, this.player.y);
+  }
+
+  // Public method to create visual effect at any position (for multiplayer)
+  public createHealingCircleVisual(x: number, y: number) {
     const radius = 120;
     const duration = 500;
 
     // Create green healing circle with glow
     const healCircle = this.scene.add.circle(
-      this.player.x,
-      this.player.y,
+      x,
+      y,
       radius,
       0x00ff88, // Brighter green
       0.45
@@ -70,8 +75,8 @@ export class JuheeSkills {
 
     // Create inner healing circle
     const innerCircle = this.scene.add.circle(
-      this.player.x,
-      this.player.y,
+      x,
+      y,
       radius * 0.5,
       0x32cd32,
       0.3
@@ -131,18 +136,18 @@ export class JuheeSkills {
     for (let i = 0; i < sparkleCount; i++) {
       const angle = (Math.PI * 2 * i) / sparkleCount;
       const startRadius = radius * 0.4;
-      const x = this.player.x + Math.cos(angle) * startRadius;
-      const y = this.player.y + Math.sin(angle) * startRadius;
+      const particleX = x + Math.cos(angle) * startRadius;
+      const particleY = y + Math.sin(angle) * startRadius;
 
-      const sparkle = this.scene.add.circle(x, y, 6, 0xffffff, 1);
+      const sparkle = this.scene.add.circle(particleX, particleY, 6, 0xffffff, 1);
       sparkle.setDepth(11);
       sparkle.setStrokeStyle(2, 0x00ff00, 0.8);
 
       // Sparkles move outward and upward
       this.scene.tweens.add({
         targets: sparkle,
-        x: this.player.x + Math.cos(angle) * radius * 1.2,
-        y: y - 40,
+        x: x + Math.cos(angle) * radius * 1.2,
+        y: particleY - 40,
         scale: 0.3,
         alpha: 0,
         duration: 700,
@@ -156,8 +161,8 @@ export class JuheeSkills {
       const delay = i * 150;
       this.scene.time.delayedCall(delay, () => {
         const wave = this.scene.add.circle(
-          this.player.x,
-          this.player.y,
+          x,
+          y,
           20,
           0x00ff00,
           0.4
@@ -196,13 +201,18 @@ export class JuheeSkills {
   }
 
   private createBlessingCircle() {
+    this.createBlessingCircleVisual(this.player.x, this.player.y);
+  }
+
+  // Public method to create visual effect at any position (for multiplayer)
+  public createBlessingCircleVisual(x: number, y: number) {
     const radius = 150;
     const duration = 500;
 
     // Create golden blessing circle with intense glow
     const blessCircle = this.scene.add.circle(
-      this.player.x,
-      this.player.y,
+      x,
+      y,
       radius,
       0xffd700, // Gold
       0.4
@@ -214,8 +224,8 @@ export class JuheeSkills {
 
     // Inner golden ring
     const innerRing = this.scene.add.circle(
-      this.player.x,
-      this.player.y,
+      x,
+      y,
       radius * 0.6,
       0xffa500,
       0.3
@@ -274,8 +284,8 @@ export class JuheeSkills {
     const rayCount = 16;
     for (let i = 0; i < rayCount; i++) {
       const angle = (Math.PI * 2 * i) / rayCount;
-      const startX = this.player.x;
-      const startY = this.player.y;
+      const startX = x;
+      const startY = y;
       const midRadius = radius * 0.3;
       const endRadius = radius * 1.3;
 
@@ -285,10 +295,10 @@ export class JuheeSkills {
         const delay = j * 40;
         this.scene.time.delayedCall(delay, () => {
           const distance = midRadius + (endRadius - midRadius) * (j / particlesPerRay);
-          const x = startX + Math.cos(angle) * distance;
-          const y = startY + Math.sin(angle) * distance;
+          const particleX = startX + Math.cos(angle) * distance;
+          const particleY = startY + Math.sin(angle) * distance;
 
-          const particle = this.scene.add.circle(x, y, 5, 0xffd700, 0.9);
+          const particle = this.scene.add.circle(particleX, particleY, 5, 0xffd700, 0.9);
           particle.setDepth(11);
           particle.setStrokeStyle(2, 0xffffff, 0.7);
 
@@ -311,10 +321,10 @@ export class JuheeSkills {
     for (let i = 0; i < symbolCount; i++) {
       const angle = (Math.PI * 2 * i) / symbolCount;
       const distance = radius * 0.8;
-      const x = this.player.x + Math.cos(angle) * distance;
-      const y = this.player.y + Math.sin(angle) * distance;
+      const symbolX = x + Math.cos(angle) * distance;
+      const symbolY = y + Math.sin(angle) * distance;
 
-      const symbol = this.scene.add.circle(x, y, 8, 0xffffff, 0.8);
+      const symbol = this.scene.add.circle(symbolX, symbolY, 8, 0xffffff, 0.8);
       symbol.setDepth(11);
       symbol.setStrokeStyle(2, 0xffd700, 1);
 
@@ -344,9 +354,11 @@ export class JuheeSkills {
   }
 
   private createHealProjectile(targetX: number, targetY: number) {
-    const startX = this.player.x;
-    const startY = this.player.y;
+    this.createHealProjectileVisual(this.player.x, this.player.y, targetX, targetY);
+  }
 
+  // Public method to create visual effect at any position (for multiplayer)
+  public createHealProjectileVisual(startX: number, startY: number, targetX: number, targetY: number) {
     // Create green healing projectile
     const projectile = this.scene.add.circle(
       startX,
@@ -400,6 +412,8 @@ export class JuheeSkills {
         this.activeHealProjectiles.splice(index, 1);
       }
     });
+
+    return projectile;
   }
 
   getSkill1Cooldown(): number {

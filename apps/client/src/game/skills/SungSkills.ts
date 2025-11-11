@@ -51,8 +51,13 @@ export class SungSkills {
   }
 
   private createBarrageStrike() {
-    const startX = this.player.x;
-    const startY = this.player.y;
+    this.createBarrageStrikeVisual(this.player.x, this.player.y);
+  }
+
+  // Public method to create visual effect at any position (for multiplayer)
+  public createBarrageStrikeVisual(x: number, y: number) {
+    const startX = x;
+    const startY = y;
     const radius = 80; // AOE radius
     const duration = 300; // Quick burst
 
@@ -190,6 +195,12 @@ export class SungSkills {
   }
 
   private createDeathGamble(isBlue: boolean) {
+    this.createDeathGambleVisual(this.player.x, this.player.y, isBlue, this.player);
+  }
+
+  // Public method to create visual effect at any position (for multiplayer)
+  // targetPlayer is optional - if provided, the circle will follow the player
+  public createDeathGambleVisual(x: number, y: number, isBlue: boolean, targetPlayer?: Phaser.GameObjects.Image) {
     const radius = 80;
     const color = isBlue ? 0x00bfff : 0xff0000; // Blue or Red
     const glowColor = isBlue ? 0x87ceeb : 0xff6347; // Lighter shade for glow
@@ -197,8 +208,8 @@ export class SungSkills {
 
     // Create main circle around player
     const circle = this.scene.add.circle(
-      this.player.x,
-      this.player.y,
+      x,
+      y,
       radius,
       color,
       0.35
@@ -210,8 +221,8 @@ export class SungSkills {
 
     // Create inner circle for more depth
     const innerCircle = this.scene.add.circle(
-      this.player.x,
-      this.player.y,
+      x,
+      y,
       radius * 0.6,
       color,
       0.2
@@ -249,8 +260,8 @@ export class SungSkills {
       const angle = (Math.PI * 2 * i) / particleCount;
       const distance = radius * 0.75;
       const particle = this.scene.add.circle(
-        this.player.x + Math.cos(angle) * distance,
-        this.player.y + Math.sin(angle) * distance,
+        x + Math.cos(angle) * distance,
+        y + Math.sin(angle) * distance,
         4,
         glowColor,
         0.8
@@ -259,24 +270,29 @@ export class SungSkills {
       particles.push(particle);
     }
 
-    // Make circles and particles follow player
+    // Make circles and particles follow player (if targetPlayer provided)
     const updatePositions = () => {
       if (circle && circle.scene) {
-        circle.x = this.player.x;
-        circle.y = this.player.y;
-        innerCircle.x = this.player.x;
-        innerCircle.y = this.player.y;
+        if (targetPlayer) {
+          circle.x = targetPlayer.x;
+          circle.y = targetPlayer.y;
+          innerCircle.x = targetPlayer.x;
+          innerCircle.y = targetPlayer.y;
+        }
 
-        // Rotate particles around player
+        // Rotate particles around center
         const rotationSpeed = isBlue ? 0.02 : 0.04; // Red rotates faster
+        const centerX = targetPlayer ? targetPlayer.x : circle.x;
+        const centerY = targetPlayer ? targetPlayer.y : circle.y;
+
         particles.forEach((particle, i) => {
           if (particle && particle.scene) {
             const baseAngle = (Math.PI * 2 * i) / particleCount;
             const currentTime = Date.now() / 1000;
             const angle = baseAngle + currentTime * rotationSpeed;
             const distance = radius * 0.75;
-            particle.x = this.player.x + Math.cos(angle) * distance;
-            particle.y = this.player.y + Math.sin(angle) * distance;
+            particle.x = centerX + Math.cos(angle) * distance;
+            particle.y = centerY + Math.sin(angle) * distance;
           }
         });
       }
