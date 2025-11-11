@@ -44,6 +44,7 @@ export class GameScene extends Phaser.Scene {
   private serverGameState: any = null;
   private serverBossAttacks: Map<string, Phaser.GameObjects.GameObject> = new Map();
   private serverProjectiles: Map<string, Phaser.GameObjects.GameObject> = new Map();
+  private serverSkillEffects: Map<string, Phaser.GameObjects.GameObject> = new Map();
 
   constructor() {
     super({ key: 'GameScene' });
@@ -451,6 +452,11 @@ export class GameScene extends Phaser.Scene {
       this.renderProjectiles(gameState.projectiles);
     }
 
+    // Render skill effects from server state
+    if (gameState.skillEffects) {
+      this.renderSkillEffects(gameState.skillEffects);
+    }
+
     // Update boss from server state
     if (gameState.boss && this.boss) {
       const bossSprite = this.boss.getSprite();
@@ -672,6 +678,116 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  private renderSkillEffects(skillEffects: any[]) {
+    const now = Date.now();
+
+    // Track which effects are in the server state
+    const serverEffectIds = new Set(skillEffects.map((e: any) => e.id));
+
+    // Remove effects that no longer exist on server
+    for (const [effectId, effectObj] of this.serverSkillEffects.entries()) {
+      if (!serverEffectIds.has(effectId)) {
+        effectObj.destroy();
+        this.serverSkillEffects.delete(effectId);
+      }
+    }
+
+    // Create or update skill effects from server
+    for (const effect of skillEffects) {
+      const existing = this.serverSkillEffects.get(effect.id);
+
+      if (existing) {
+        // Update existing effect
+        const progress = (now - effect.createdAt) / (effect.expiresAt - effect.createdAt);
+
+        switch (effect.effectType) {
+          case 'fern_fire_aoe': {
+            // Expanding fire AOE
+            const maxRadius = effect.data?.maxRadius || 180;
+            const currentRadius = effect.radius + (maxRadius - effect.radius) * progress;
+            (existing as Phaser.GameObjects.Arc).setRadius(currentRadius);
+            (existing as Phaser.GameObjects.Arc).setAlpha(1 - progress * 0.5);
+            break;
+          }
+
+          case 'fern_zoltraak': {
+            // Moving projectile
+            (existing as any).setPosition?.(effect.x, effect.y);
+            break;
+          }
+
+          case 'guts_rage_aoe': {
+            // Expanding rage AOE
+            const maxRadius = effect.data?.maxRadius || 120;
+            const currentRadius = effect.radius + (maxRadius - effect.radius) * progress;
+            (existing as Phaser.GameObjects.Arc).setRadius(currentRadius);
+            (existing as Phaser.GameObjects.Arc).setAlpha(1 - progress * 0.5);
+            break;
+          }
+
+          case 'stark_stun_aoe': {
+            // Static AOE
+            (existing as Phaser.GameObjects.Arc).setAlpha(1 - progress);
+            break;
+          }
+        }
+      } else {
+        // Create new skill effect visual
+        let visual: Phaser.GameObjects.GameObject | null = null;
+
+        switch (effect.effectType) {
+          case 'fern_fire_aoe': {
+            // Expanding fire AOE
+            const circle = this.add.circle(effect.x, effect.y, effect.radius, 0xff6600, 0.6);
+            circle.setStrokeStyle(4, 0xff0000);
+            circle.setDepth(90);
+            visual = circle;
+            break;
+          }
+
+          case 'fern_zoltraak': {
+            // Purple beam projectile
+            const beam = this.add.rectangle(effect.x, effect.y, 40, 15, 0x9900ff, 1);
+            beam.setRotation(effect.angle || 0);
+            beam.setDepth(90);
+
+            // Add glow effect
+            const glow = this.add.circle(effect.x, effect.y, 25, 0xcc66ff, 0.5);
+            glow.setDepth(89);
+
+            // Store both as container
+            const container = this.add.container(effect.x, effect.y, [glow, beam]);
+            container.setDepth(90);
+            visual = container;
+            break;
+          }
+
+          case 'stark_stun_aoe': {
+            // Yellow AOE stun effect
+            const circle = this.add.circle(effect.x, effect.y, effect.radius || 120, 0xffff00, 0.4);
+            circle.setStrokeStyle(5, 0xffa500);
+            circle.setDepth(90);
+            visual = circle;
+            break;
+          }
+
+          case 'guts_rage_aoe': {
+            // Red expanding rage AOE
+            const circle = this.add.circle(effect.x, effect.y, effect.radius, 0xff0000, 0.7);
+            circle.setStrokeStyle(5, 0x990000);
+            circle.setDepth(90);
+            visual = circle;
+            break;
+          }
+        }
+
+        if (visual) {
+          this.serverSkillEffects.set(effect.id, visual);
+        }
+      }
+    }
+  }
+
   private onGameCompleted(data: any) {
     console.log('Game completed:', data);
     this.gameStarted = false;
@@ -733,7 +849,7 @@ export class GameScene extends Phaser.Scene {
         const mousePos = this.input.activePointer;
 
         if (actions.skill1) {
-          socket.emit('game:skill', { skillId: 1, mouseX: mousePos.worldX, mouseY: mousePos.worldY });
+          socket.emit('game:skill', { skillId: 1, targetX: mousePos.worldX, targetY: mousePos.worldY });
           // Create local visual effects
           const fernSkills = this.player.getFernSkills();
           if (fernSkills) {
@@ -750,7 +866,7 @@ export class GameScene extends Phaser.Scene {
           }
         }
         if (actions.skill2) {
-          socket.emit('game:skill', { skillId: 2, mouseX: mousePos.worldX, mouseY: mousePos.worldY });
+          socket.emit('game:skill', { skillId: 2, targetX: mousePos.worldX, targetY: mousePos.worldY });
           // Create local visual effects
           const fernSkills = this.player.getFernSkills();
           if (fernSkills) {

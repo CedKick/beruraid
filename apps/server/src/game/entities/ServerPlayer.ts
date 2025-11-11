@@ -3,6 +3,11 @@
  * Authoritative player state and combat logic
  */
 
+import { ServerFernSkills } from '../skills/ServerFernSkills.js';
+import { ServerStarkSkills } from '../skills/ServerStarkSkills.js';
+import { ServerGutsSkills } from '../skills/ServerGutsSkills.js';
+import { SkillEffect, PlayerBuff } from '@beruraid/shared';
+
 export interface Projectile {
   id: string;
   ownerId: string;
@@ -102,6 +107,14 @@ export class ServerPlayer {
   private currentDps = 0;
   private currentHps = 0;
 
+  // Character-specific skills
+  private fernSkills: ServerFernSkills | null = null;
+  private starkSkills: ServerStarkSkills | null = null;
+  private gutsSkills: ServerGutsSkills | null = null;
+
+  // Player buffs
+  private buffs: PlayerBuff[] = [];
+
   constructor(socketId: string, name: string, characterId: string, x: number, y: number) {
     this.socketId = socketId;
     this.name = name;
@@ -127,6 +140,15 @@ export class ServerPlayer {
       attackSpeed: 1,
       damageBoost: 0
     };
+
+    // Initialize character-specific skills
+    if (characterId === 'fern') {
+      this.fernSkills = new ServerFernSkills(socketId, name);
+    } else if (characterId === 'stark') {
+      this.starkSkills = new ServerStarkSkills(socketId, name);
+    } else if (characterId === 'guts') {
+      this.gutsSkills = new ServerGutsSkills(socketId, name);
+    }
   }
 
   update(time: number, delta: number): void {
@@ -155,6 +177,18 @@ export class ServerPlayer {
       this.healDoneSinceLastUpdate = 0;
       this.lastDpsUpdateTime = time;
     }
+
+    // Update character-specific skills
+    if (this.fernSkills) {
+      this.fernSkills.update(delta, this.x, this.y);
+    } else if (this.starkSkills) {
+      this.starkSkills.update(delta);
+    } else if (this.gutsSkills) {
+      this.gutsSkills.update(delta);
+    }
+
+    // Update buffs (remove expired)
+    this.buffs = this.buffs.filter(buff => time < buff.expiresAt);
   }
 
   // Track damage dealt
@@ -246,10 +280,21 @@ export class ServerPlayer {
   takeDamage(amount: number, attackerDefPen: number = 0): number {
     if (this.isDodging) return 0;
 
+    // Check for invincibility buff (Guts Beast of Darkness)
+    if (this.hasInvincibilityBuff()) return 0;
+
     // Calculate damage with defense
     const effectiveDefense = Math.max(0, this.stats.defense - attackerDefPen);
     const damageReduction = effectiveDefense / (effectiveDefense + 100);
-    const finalDamage = amount * (1 - damageReduction);
+    let finalDamage = amount * (1 - damageReduction);
+
+    // Apply shield buff (Stark's damage absorption)
+    if (this.hasShieldBuff()) {
+      const shieldBuff = this.buffs.find(buff => buff.type === 'stark_shield');
+      if (shieldBuff && shieldBuff.data?.damageReduction) {
+        finalDamage *= (1 - shieldBuff.data.damageReduction);
+      }
+    }
 
     this.stats.currentHp = Math.max(0, this.stats.currentHp - finalDamage);
 
@@ -377,6 +422,17 @@ export class ServerPlayer {
     // Apply damage boost
     damage *= (1 + this.stats.damageBoost);
 
+    // Apply Berserker buff (Guts ultimate)
+    if (this.hasBerserkerBuff()) {
+      const berserkerBuff = this.buffs.find(buff => buff.type === 'guts_berserker');
+      if (berserkerBuff && berserkerBuff.data?.dpsMultiplierIncrement) {
+        const timeActive = Date.now() - (berserkerBuff.expiresAt - 10000); // 10s duration
+        const intervals = Math.floor(timeActive / berserkerBuff.data.dpsMultiplierInterval);
+        const multiplier = Math.pow(berserkerBuff.data.dpsMultiplierIncrement, intervals);
+        damage *= multiplier;
+      }
+    }
+
     return { damage, isCrit: false };
   }
 
@@ -406,5 +462,100 @@ export class ServerPlayer {
 
   getIsAlive(): boolean {
     return this.isAlive;
+  }
+
+  // Skill usage methods
+  useSkill1(time: number, bossX?: number, bossY?: number): {
+    success: boolean;
+    manaCost?: number;
+    hpCost?: number;
+    damage?: number;
+    effect?: SkillEffect;
+  } {
+    if (this.fernSkills) {
+      return this.fernSkills.useSkill1(this.stats.currentMana, this.x, this.y, time);
+    } else if (this.starkSkills && bossX !== undefined && bossY !== undefined) {
+      return this.starkSkills.useSkill1(this.stats.currentMana, this.x, this.y, bossX, bossY, time);
+    } else if (this.gutsSkills) {
+      const isInvincible = this.hasInvincibilityBuff();
+      return this.gutsSkills.useSkill1(this.stats.currentHp, this.stats.maxHp, isInvincible, this.x, this.y, time);
+    }
+    return { success: false };
+  }
+
+  useSkill2(time: number, targetX?: number, targetY?: number): {
+    success: boolean;
+    manaCost?: number;
+    damage?: number;
+    stunBoss?: boolean;
+    effect?: SkillEffect;
+    buff?: PlayerBuff;
+  } {
+    if (this.fernSkills && targetX !== undefined && targetY !== undefined) {
+      return this.fernSkills.useSkill2(this.stats.currentMana, this.x, this.y, targetX, targetY, time);
+    } else if (this.starkSkills) {
+      return this.starkSkills.useSkill2(this.stats.currentMana, time);
+    } else if (this.gutsSkills) {
+      return this.gutsSkills.useSkill2(this.stats.currentMana, time);
+    }
+    return { success: false };
+  }
+
+  useUltimate(time: number): {
+    success: boolean;
+    manaCost?: number;
+    damage?: number;
+    buff?: PlayerBuff;
+  } {
+    if (this.gutsSkills) {
+      return this.gutsSkills.useUltimate(this.stats.currentMana, this.stats.attack, time);
+    }
+    return { success: false };
+  }
+
+  // Buff management
+  addBuff(buff: PlayerBuff): void {
+    this.buffs.push(buff);
+  }
+
+  hasInvincibilityBuff(): boolean {
+    return this.buffs.some(buff => buff.type === 'guts_beast');
+  }
+
+  hasShieldBuff(): boolean {
+    return this.buffs.some(buff => buff.type === 'stark_shield');
+  }
+
+  hasBerserkerBuff(): boolean {
+    return this.buffs.some(buff => buff.type === 'guts_berserker');
+  }
+
+  getBuffs(): PlayerBuff[] {
+    return [...this.buffs];
+  }
+
+  // Get skill-specific data
+  getSkillCooldowns(): any {
+    if (this.fernSkills) {
+      return this.fernSkills.getCooldowns();
+    } else if (this.starkSkills) {
+      return this.starkSkills.getCooldowns();
+    } else if (this.gutsSkills) {
+      return this.gutsSkills.getCooldowns();
+    }
+    return {};
+  }
+
+  getFernStackCount(): number {
+    return this.fernSkills ? this.fernSkills.getSkill1StackCount() : 0;
+  }
+
+  getStunDuration(): number {
+    if (this.starkSkills) {
+      return this.starkSkills.getStunDuration();
+    } else if (this.gutsSkills) {
+      return this.gutsSkills.getStunDuration();
+    }
+    return 0;
   }
 }

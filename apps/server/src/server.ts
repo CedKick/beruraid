@@ -238,7 +238,14 @@ io.on('connection', (socket) => {
   socket.on('game:skill', (data) => {
     const room = roomManager.getRoomBySocketId(socket.id);
     if (room) {
-      room.handlePlayerSkill(socket.id, data);
+      // Route to appropriate skill handler based on skillId
+      if (data.skillId === 1) {
+        room.handlePlayerSkill1(socket.id);
+      } else if (data.skillId === 2) {
+        room.handlePlayerSkill2(socket.id, data.targetX, data.targetY);
+      } else if (data.skillId === 3) {
+        room.handlePlayerUltimate(socket.id);
+      }
     }
   });
 

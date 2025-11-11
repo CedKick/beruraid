@@ -3,7 +3,7 @@
  * Handles game state, player synchronization, and boss mechanics
  */
 
-import type { PlayerState, GameState, RoomStatus } from '@beruraid/shared';
+import type { PlayerState, GameState, RoomStatus, SkillEffect } from '@beruraid/shared';
 import { ServerBoss, type BossState as ServerBossState } from './entities/ServerBoss.js';
 import { ServerPlayer } from './entities/ServerPlayer.js';
 
@@ -18,6 +18,9 @@ export class GameRoom {
   // Server-side game entities
   private serverPlayers: Map<string, ServerPlayer> = new Map();
   private serverBoss: ServerBoss | null = null;
+
+  // Track all active skill effects
+  private skillEffects: SkillEffect[] = [];
 
   private isActive: boolean = false;
   private startTime: number = 0;
@@ -150,6 +153,21 @@ export class GameRoom {
     // Check projectile-boss collisions
     this.checkProjectileCollisions();
 
+    // Update skill effects (remove expired)
+    this.skillEffects = this.skillEffects.filter(effect => now < effect.expiresAt);
+
+    // Update moving skill effects (like Fern's Zoltraak)
+    for (const effect of this.skillEffects) {
+      if (effect.velocityX !== undefined && effect.velocityY !== undefined) {
+        const deltaSeconds = deltaTime / 1000;
+        effect.x += effect.velocityX * deltaSeconds;
+        effect.y += effect.velocityY * deltaSeconds;
+      }
+    }
+
+    // Check skill-boss collisions
+    this.checkSkillCollisions();
+
     // Check victory condition (boss defeated)
     if (this.serverBoss.isDead()) {
       this.onBossDefeated();
@@ -223,6 +241,7 @@ export class GameRoom {
         velocityY: bossState.velocityY
       },
       projectiles: allProjectiles,
+      skillEffects: this.skillEffects,
       startTime: this.startTime,
       elapsedTime: Date.now() - this.startTime,
       remainingTime: Math.max(0, 180000 - (Date.now() - this.startTime)),
@@ -349,26 +368,192 @@ export class GameRoom {
   }
 
   /**
-   * Handle player skill
+   * Check skill-boss collisions and apply damage
    */
-  public handlePlayerSkill(
-    socketId: string,
-    skillData: { skillId: number; targetX?: number; targetY?: number }
-  ): void {
+  private checkSkillCollisions(): void {
+    if (!this.serverBoss) return;
+
+    const bossState = this.serverBoss.getState();
+    const bossRadius = 50; // Boss collision radius
+    const now = Date.now();
+
+    // Track which skills have already hit to avoid multi-hits
+    const skillsToRemove: string[] = [];
+
+    for (const effect of this.skillEffects) {
+      // Skip if already processed
+      if (skillsToRemove.includes(effect.id)) continue;
+
+      // Get the owner player
+      const ownerPlayer = this.serverPlayers.get(effect.ownerId);
+      if (!ownerPlayer) continue;
+
+      let hitDetected = false;
+      let damage = effect.damage || 0;
+
+      // Check collision based on effect type
+      switch (effect.effectType) {
+        case 'fern_fire_aoe': {
+          // Expanding AOE - check if boss is within radius
+          const distance = Math.sqrt(
+            Math.pow(bossState.x - effect.x, 2) + Math.pow(bossState.y - effect.y, 2)
+          );
+
+          // Calculate current radius (expands over time)
+          const progress = (now - effect.createdAt) / (effect.expiresAt - effect.createdAt);
+          const maxRadius = effect.data?.maxRadius || 180;
+          const currentRadius = effect.radius! + (maxRadius - effect.radius!) * progress;
+
+          hitDetected = distance <= currentRadius + bossRadius;
+          break;
+        }
+
+        case 'fern_zoltraak': {
+          // Projectile skill - check distance
+          const distance = Math.sqrt(
+            Math.pow(bossState.x - effect.x, 2) + Math.pow(bossState.y - effect.y, 2)
+          );
+          hitDetected = distance <= 30 + bossRadius; // Zoltraak radius
+          break;
+        }
+
+        case 'stark_stun_aoe': {
+          // AOE stun - check if boss is within radius
+          const distance = Math.sqrt(
+            Math.pow(bossState.x - effect.x, 2) + Math.pow(bossState.y - effect.y, 2)
+          );
+          hitDetected = distance <= (effect.radius || 120) + bossRadius;
+          break;
+        }
+
+        case 'guts_rage_aoe': {
+          // Expanding rage AOE
+          const distance = Math.sqrt(
+            Math.pow(bossState.x - effect.x, 2) + Math.pow(bossState.y - effect.y, 2)
+          );
+
+          // Calculate current radius (expands over time)
+          const progress = (now - effect.createdAt) / (effect.expiresAt - effect.createdAt);
+          const maxRadius = effect.data?.maxRadius || 120;
+          const currentRadius = effect.radius! + (maxRadius - effect.radius!) * progress;
+
+          hitDetected = distance <= currentRadius + bossRadius;
+          break;
+        }
+      }
+
+      // Apply damage if hit detected
+      if (hitDetected && damage > 0) {
+        const damageResult = ownerPlayer.calculateDamage(damage, bossState.defense);
+        this.serverBoss.takeDamage(damageResult.damage);
+        ownerPlayer.addDamageDealt(damageResult.damage);
+
+        console.log(`💥 ${effect.effectType} hit! ${ownerPlayer.name} dealt ${damageResult.damage.toFixed(1)} damage`);
+
+        // Mark projectile skills for removal after hit
+        if (effect.effectType === 'fern_zoltraak') {
+          skillsToRemove.push(effect.id);
+        }
+      }
+    }
+
+    // Remove skills that hit
+    this.skillEffects = this.skillEffects.filter(effect => !skillsToRemove.includes(effect.id));
+  }
+
+  /**
+   * Handle player skill 1 (A key)
+   */
+  public handlePlayerSkill1(socketId: string): void {
     const serverPlayer = this.serverPlayers.get(socketId);
     if (!serverPlayer || !this.serverBoss) return;
 
-    // TODO: Implement skill-specific logic
-    // For now, just handle basic damage skills
-    const manaCost = skillData.skillId === 1 ? 10 : 20;
+    const bossState = this.serverBoss.getState();
+    const result = serverPlayer.useSkill1(Date.now(), bossState.x, bossState.y);
 
-    if (serverPlayer.useMana(manaCost)) {
-      const baseDamage = skillData.skillId === 1 ? 20 : 50;
-      const damageResult = serverPlayer.calculateDamage(baseDamage, this.serverBoss.getState().defense);
+    if (result.success) {
+      // Consume resources
+      if (result.manaCost) {
+        serverPlayer.useMana(result.manaCost);
+      }
+      if (result.hpCost) {
+        serverPlayer.takeDamage(result.hpCost);
+      }
 
-      this.serverBoss.takeDamage(damageResult.damage);
+      // Add skill effect to tracking
+      if (result.effect) {
+        this.skillEffects.push(result.effect);
+      }
 
-      console.log(`✨ Player ${serverPlayer.name} used skill ${skillData.skillId} for ${damageResult.damage.toFixed(1)} damage`);
+      console.log(`✨ ${serverPlayer.name} used Skill 1 (${serverPlayer.characterId})`);
+    }
+  }
+
+  /**
+   * Handle player skill 2 (E key)
+   */
+  public handlePlayerSkill2(socketId: string, targetX?: number, targetY?: number): void {
+    const serverPlayer = this.serverPlayers.get(socketId);
+    if (!serverPlayer || !this.serverBoss) return;
+
+    const result = serverPlayer.useSkill2(Date.now(), targetX, targetY);
+
+    if (result.success) {
+      // Consume mana
+      if (result.manaCost) {
+        serverPlayer.useMana(result.manaCost);
+      }
+
+      // Add skill effect
+      if (result.effect) {
+        this.skillEffects.push(result.effect);
+      }
+
+      // Apply buff to player
+      if (result.buff) {
+        serverPlayer.addBuff(result.buff);
+      }
+
+      // Stun boss if applicable
+      if (result.stunBoss) {
+        const stunDuration = serverPlayer.getStunDuration();
+        this.serverBoss.stun(stunDuration, Date.now());
+        console.log(`💫 ${serverPlayer.name} stunned the boss for ${stunDuration}ms!`);
+      }
+
+      console.log(`✨ ${serverPlayer.name} used Skill 2 (${serverPlayer.characterId})`);
+    }
+  }
+
+  /**
+   * Handle player ultimate skill
+   */
+  public handlePlayerUltimate(socketId: string): void {
+    const serverPlayer = this.serverPlayers.get(socketId);
+    if (!serverPlayer || !this.serverBoss) return;
+
+    const result = serverPlayer.useUltimate(Date.now());
+
+    if (result.success) {
+      // Consume mana
+      if (result.manaCost) {
+        serverPlayer.useMana(result.manaCost);
+      }
+
+      // Apply instant damage (for Guts ultimate)
+      if (result.damage) {
+        const damageResult = serverPlayer.calculateDamage(result.damage, this.serverBoss.getState().defense);
+        this.serverBoss.takeDamage(damageResult.damage);
+        serverPlayer.addDamageDealt(damageResult.damage);
+        console.log(`💥 ${serverPlayer.name} ultimate dealt ${damageResult.damage.toFixed(1)} instant damage!`);
+      }
+
+      // Apply buff
+      if (result.buff) {
+        serverPlayer.addBuff(result.buff);
+      }
+
+      console.log(`🔥 ${serverPlayer.name} used ULTIMATE!`);
     }
   }
 
