@@ -216,6 +216,15 @@ export class GameScene extends Phaser.Scene {
       this.handleGutsUltimate(data.damage);
     });
 
+    // Listen for Juhee's skills
+    this.events.on('juheeUseHealingCircle', () => {
+      this.handleJuheeHealingCircle();
+    });
+
+    this.events.on('juheeUseBlessing', () => {
+      this.handleJuheeBlessing();
+    });
+
     // Start countdown before combat begins
     this.startCountdown();
 
@@ -469,6 +478,10 @@ export class GameScene extends Phaser.Scene {
 
     // Render projectiles from server state
     if (gameState.projectiles) {
+      const healProjectiles = gameState.projectiles.filter((p: any) => p.type === 'heal');
+      if (healProjectiles.length > 0) {
+        console.log(`💚 [CLIENT] Received ${healProjectiles.length} heal projectiles from server`);
+      }
       this.renderProjectiles(gameState.projectiles);
     }
 
@@ -1637,6 +1650,11 @@ export class GameScene extends Phaser.Scene {
       this.checkFernSkillCollisions();
     }
 
+    // Check Juhee's heal projectile collisions if playing as Juhee (SOLO MODE ONLY)
+    if (this.gameConfig?.characterId === 'juhee' && !this.isMultiplayerMode) {
+      this.checkJuheeHealProjectileCollisions();
+    }
+
     // Update UI
     this.updateUI();
   }
@@ -1824,6 +1842,123 @@ export class GameScene extends Phaser.Scene {
     if (this.boss.isDead()) {
       this.onBossDefeated();
     }
+  }
+
+  private handleJuheeHealingCircle() {
+    // Heal the player via stats manager
+    const healAmount = 50; // Base heal amount
+    const stats = this.player.getStats();
+    const scaledHeal = Math.floor(healAmount * (1 + stats.maxHp / 1000));
+
+    // Heal using stats manager
+    const actualHealed = this.player.getStatsManager().heal(scaledHeal);
+
+    // Show floating text (green color for heal)
+    const playerSprite = this.player.getSprite();
+    const healText = this.add.text(playerSprite.x, playerSprite.y - 40, `+${actualHealed}`, {
+      fontSize: '24px',
+      color: '#00ff00',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 4
+    });
+    healText.setOrigin(0.5);
+    healText.setDepth(1000);
+
+    // Animate text
+    this.tweens.add({
+      targets: healText,
+      y: playerSprite.y - 80,
+      alpha: 0,
+      duration: 1000,
+      ease: 'Cubic.easeOut',
+      onComplete: () => healText.destroy()
+    });
+  }
+
+  private handleJuheeBlessing() {
+    // Apply blessing buff to player (attack and defense boost)
+    // The visual effect is already handled by JuheeSkills.ts
+    // In solo mode, just show feedback text
+    const playerSprite = this.player.getSprite();
+    const buffText = this.add.text(playerSprite.x, playerSprite.y - 60, 'BLESSED!', {
+      fontSize: '28px',
+      color: '#ffd700',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 4
+    });
+    buffText.setOrigin(0.5);
+    buffText.setDepth(1000);
+
+    // Animate text
+    this.tweens.add({
+      targets: buffText,
+      y: playerSprite.y - 100,
+      alpha: 0,
+      duration: 1500,
+      ease: 'Cubic.easeOut',
+      onComplete: () => buffText.destroy()
+    });
+  }
+
+  private checkJuheeHealProjectileCollisions() {
+    const juheeSkills = this.player.getJuheeSkills();
+    if (!juheeSkills) return;
+
+    const healProjectiles = juheeSkills.getHealProjectiles();
+    if (healProjectiles.length === 0) return;
+
+    const bossSprite = this.boss.getSprite();
+    const bossRadius = 50;
+
+    healProjectiles.forEach((projectile: any) => {
+      if (projectile.active && !(projectile as any).hasHitBoss) {
+        const distance = Phaser.Math.Distance.Between(
+          projectile.x,
+          projectile.y,
+          bossSprite.x,
+          bossSprite.y
+        );
+
+        if (distance <= projectile.radius + bossRadius) {
+          // Hit the boss!
+          const damage = (projectile as any).healAmount || 30;
+          const stats = this.player.getStats();
+
+          const damageResult = DamageCalculator.calculateDamage(
+            damage,
+            stats.attack,
+            stats.defPen,
+            this.boss.getDefense(),
+            stats.critRate,
+            stats.critDamage,
+            stats.damageBoost
+          );
+
+          this.boss.takeDamage(damageResult.damage, this.player.getElement());
+          this.combatStats.addDamage(damageResult.damage);
+
+          // Show floating damage
+          this.showFloatingDamage(
+            damageResult.damage,
+            damageResult.isCrit,
+            damageResult.critTier,
+            bossSprite.x,
+            bossSprite.y
+          );
+
+          // Mark as hit and destroy
+          (projectile as any).hasHitBoss = true;
+          projectile.destroy();
+
+          // Check if boss is dead
+          if (this.boss.isDead()) {
+            this.onBossDefeated();
+          }
+        }
+      }
+    });
   }
 
   private handlePlayerHit(

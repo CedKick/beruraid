@@ -353,9 +353,18 @@ export class GameRoom {
     for (const serverPlayer of this.serverPlayers.values()) {
       const projectiles = serverPlayer.getProjectiles();
 
+      if (projectiles.length > 0) {
+        const healProj = projectiles.filter(p => p.type === 'heal');
+        if (healProj.length > 0) {
+          console.log(`💚 [COLLISIONS] Checking ${healProj.length} heal projectiles for ${serverPlayer.name}`);
+        }
+      }
+
       for (const projectile of projectiles) {
         // Special handling for heal projectiles
         if (projectile.type === 'heal') {
+          console.log(`💚 [COLLISIONS] Heal projectile at (${projectile.x.toFixed(0)}, ${projectile.y.toFixed(0)})`);
+
           let hitSomething = false;
 
           // First check collision with players (heal)
@@ -369,6 +378,7 @@ export class GameRoom {
               const healAmount = projectile.healAmount || 30;
               targetPlayer.heal(healAmount);
               serverPlayer.addHealDone(healAmount);
+              console.log(`💚 [HEAL_PROJ] Healed ${targetPlayer.name} for ${healAmount}`);
 
               serverPlayer.removeProjectile(projectile.id);
               hitSomething = true;
@@ -389,6 +399,7 @@ export class GameRoom {
               );
               this.serverBoss.takeDamage(damageResult.damage, serverPlayer.getElement());
               serverPlayer.addDamageDealt(damageResult.damage);
+              console.log(`💥 [HEAL_PROJ] Hit boss for ${damageResult.damage.toFixed(1)} damage`);
               serverPlayer.removeProjectile(projectile.id);
             }
           }
@@ -543,6 +554,8 @@ export class GameRoom {
           const healAmount = effect.data?.healAmount || 50;
           const healRadius = effect.radius || 120;
 
+          console.log(`💚 [HEAL_CIRCLE] Processing healing circle from ${ownerPlayer.name} at (${effect.x.toFixed(0)}, ${effect.y.toFixed(0)}) - radius: ${healRadius}`);
+
           // Check if we've already applied this effect (via custom flag)
           if (!(effect as any).appliedEffect) {
             // Heal all players within radius (including Juhee herself)
@@ -551,10 +564,14 @@ export class GameRoom {
                 Math.pow(player.x - effect.x, 2) + Math.pow(player.y - effect.y, 2)
               );
 
+              console.log(`💚 [HEAL_CIRCLE] Distance to ${player.name}: ${distance.toFixed(0)} (max: ${healRadius + 30})`);
+
               if (distance <= healRadius + 30) { // Player collision radius
                 const actualHealed = player.heal(healAmount);
                 ownerPlayer.addHealDone(actualHealed);
-                console.log(`💚 ${ownerPlayer.name}'s healing circle healed ${player.name} for ${actualHealed} HP`);
+                console.log(`💚 [HEAL_CIRCLE] ${ownerPlayer.name}'s healing circle healed ${player.name} for ${actualHealed} HP`);
+              } else {
+                console.log(`❌ [HEAL_CIRCLE] ${player.name} too far from healing circle`);
               }
             }
 
@@ -780,13 +797,25 @@ export class GameRoom {
    */
   public handlePlayerRightClick(socketId: string, targetX: number, targetY: number): void {
     const serverPlayer = this.serverPlayers.get(socketId);
-    if (!serverPlayer) return;
+    if (!serverPlayer) {
+      console.log(`❌ [RIGHTCLICK] Player not found: ${socketId}`);
+      return;
+    }
 
     // Only Juhee can use right-click heal
-    if (serverPlayer.characterId !== 'juhee') return;
+    if (serverPlayer.characterId !== 'juhee') {
+      console.log(`❌ [RIGHTCLICK] Player ${serverPlayer.name} is not Juhee (${serverPlayer.characterId})`);
+      return;
+    }
 
+    console.log(`💚 [RIGHTCLICK] Creating heal projectile for ${serverPlayer.name} to (${targetX.toFixed(0)}, ${targetY.toFixed(0)})`);
     // Create heal projectile (same system as ranged attacks)
-    serverPlayer.createHealProjectile(Date.now(), targetX, targetY);
+    const projectile = serverPlayer.createHealProjectile(Date.now(), targetX, targetY);
+    if (projectile) {
+      console.log(`✅ [RIGHTCLICK] Heal projectile created: ${projectile.id}`);
+    } else {
+      console.log(`❌ [RIGHTCLICK] Failed to create heal projectile (cooldown?)`);
+    }
   }
 
   /**

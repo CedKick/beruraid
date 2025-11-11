@@ -386,6 +386,7 @@ export class ServerPlayer {
 
   createHealProjectile(time: number, targetX: number, targetY: number): Projectile | null {
     if (time - this.lastRangedAttackTime < this.rangedAttackCooldown) {
+      console.log(`⏱️ [HEAL_PROJ] Cooldown active for ${this.name} (${((this.rangedAttackCooldown - (time - this.lastRangedAttackTime)) / 1000).toFixed(2)}s remaining)`);
       return null;
     }
 
@@ -414,6 +415,7 @@ export class ServerPlayer {
     };
 
     this.projectiles.push(projectile);
+    console.log(`💚 [HEAL_PROJ] Projectile added to array. Total projectiles: ${this.projectiles.length}`);
     return projectile;
   }
 

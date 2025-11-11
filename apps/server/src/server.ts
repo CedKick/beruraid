@@ -267,24 +267,33 @@ io.on('connection', (socket) => {
 
   // Game: Skill
   socket.on('game:skill', (data) => {
+    console.log(`✨ [SERVER] Received game:skill from ${socket.id} - skillId: ${data.skillId}`);
     const room = roomManager.getRoomBySocketId(socket.id);
     if (room) {
       // Route to appropriate skill handler based on skillId
       if (data.skillId === 1) {
+        console.log(`🅰️ [SERVER] Routing to Skill 1 (A)`);
         room.handlePlayerSkill1(socket.id);
       } else if (data.skillId === 2) {
+        console.log(`🅴 [SERVER] Routing to Skill 2 (E)`);
         room.handlePlayerSkill2(socket.id, data.targetX, data.targetY);
       } else if (data.skillId === 3) {
+        console.log(`🔥 [SERVER] Routing to Ultimate (R)`);
         room.handlePlayerUltimate(socket.id);
       }
+    } else {
+      console.log(`❌ [SERVER] No room found for socket ${socket.id}`);
     }
   });
 
   // Game: Right-click (for Juhee heal projectile)
   socket.on('game:rightclick', (data) => {
+    console.log(`🖱️ [SERVER] Received game:rightclick from ${socket.id} to (${data.targetX}, ${data.targetY})`);
     const room = roomManager.getRoomBySocketId(socket.id);
     if (room) {
       room.handlePlayerRightClick(socket.id, data.targetX, data.targetY);
+    } else {
+      console.log(`❌ [SERVER] No room found for socket ${socket.id}`);
     }
   });
 
