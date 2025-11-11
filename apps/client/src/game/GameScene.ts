@@ -785,7 +785,8 @@ export class GameScene extends Phaser.Scene {
           }
 
           case 'sung_death_gamble': {
-            // Static AOE circle (follows player in server, we just update alpha here)
+            // Moving AOE circle (follows player position from server)
+            (existing as any).setPosition?.(effect.x, effect.y);
             (existing as Phaser.GameObjects.Arc).setAlpha(0.4 - progress * 0.1);
             break;
           }
@@ -818,15 +819,16 @@ export class GameScene extends Phaser.Scene {
 
           case 'fern_zoltraak': {
             // Purple beam projectile
-            const beam = this.add.rectangle(effect.x, effect.y, 40, 15, 0x9900ff, 1);
+            // Children positions are relative to container (0, 0)
+            const beam = this.add.rectangle(0, 0, 40, 15, 0x9900ff, 1);
             beam.setRotation(effect.angle || 0);
             beam.setDepth(90);
 
             // Add glow effect
-            const glow = this.add.circle(effect.x, effect.y, 25, 0xcc66ff, 0.5);
+            const glow = this.add.circle(0, 0, 25, 0xcc66ff, 0.5);
             glow.setDepth(89);
 
-            // Store both as container
+            // Store both as container at effect position
             const container = this.add.container(effect.x, effect.y, [glow, beam]);
             container.setDepth(90);
             visual = container;
@@ -853,15 +855,16 @@ export class GameScene extends Phaser.Scene {
 
           case 'juhee_heal_projectile': {
             // Green heal projectile
-            const healCircle = this.add.circle(effect.x, effect.y, effect.radius || 20, 0x00ff00, 0.8);
+            // Children positions are relative to container (0, 0)
+            const healCircle = this.add.circle(0, 0, effect.radius || 20, 0x00ff00, 0.8);
             healCircle.setStrokeStyle(3, 0x00ff88);
             healCircle.setDepth(90);
 
             // Add sparkle effect
-            const sparkle = this.add.circle(effect.x, effect.y, (effect.radius || 20) * 0.6, 0xccffcc, 0.6);
+            const sparkle = this.add.circle(0, 0, (effect.radius || 20) * 0.6, 0xccffcc, 0.6);
             sparkle.setDepth(89);
 
-            // Store both as container
+            // Store both as container at effect position
             const container = this.add.container(effect.x, effect.y, [sparkle, healCircle]);
             container.setDepth(90);
             visual = container;
