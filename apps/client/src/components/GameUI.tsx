@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { StatsPanel } from './StatsPanel';
+import { Leaderboard, type PlayerScore } from './Leaderboard';
 import './GameUI.css';
 
 interface PlayerStats {
@@ -48,6 +49,8 @@ interface GameState {
   totalDamage: number;
   hps: number;
   totalHeal: number;
+  playerScores?: PlayerScore[];
+  isPlayerDead?: boolean;
 }
 
 interface GameUIProps {
@@ -234,26 +237,10 @@ export function GameUI({ gameScene }: GameUIProps) {
         <div className="timer-value">{gameState.remainingTime}</div>
       </div>
 
-      {/* Combat Stats (Right Side) */}
-      <div className="combat-stats-panel">
-        <h3>Combat Stats</h3>
-        <div className="stat-row">
-          <span className="stat-label">DPS:</span>
-          <span className="stat-value">{Math.floor(gameState.dps)}</span>
-        </div>
-        <div className="stat-row">
-          <span className="stat-label">Total DMG:</span>
-          <span className="stat-value">{Math.floor(gameState.totalDamage)}</span>
-        </div>
-        <div className="stat-row">
-          <span className="stat-label">HPS:</span>
-          <span className="stat-value">{Math.floor(gameState.hps)}</span>
-        </div>
-        <div className="stat-row">
-          <span className="stat-label">Total Heal:</span>
-          <span className="stat-value">{Math.floor(gameState.totalHeal)}</span>
-        </div>
-      </div>
+      {/* Leaderboard (Right Side) */}
+      {gameState.playerScores && gameState.playerScores.length > 0 && (
+        <Leaderboard players={gameState.playerScores} />
+      )}
 
       {/* Boss HP */}
       <div className="boss-hud">
@@ -289,6 +276,24 @@ export function GameUI({ gameScene }: GameUIProps) {
           </div>
         </div>
       </div>
+
+      {/* Death Overlay */}
+      {gameState.isPlayerDead && (
+        <div className="death-overlay">
+          <div className="death-message">
+            <h1>💀 VOUS ÊTES MORT 💀</h1>
+            <p>Votre aventure prend fin ici...</p>
+            <button
+              className="return-menu-btn"
+              onClick={() => {
+                window.location.href = '/';
+              }}
+            >
+              Retour au Menu
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Controls reminder */}
       <div className="controls-hint">

@@ -179,6 +179,7 @@ export class GameRoom {
     // Convert server player states to shared PlayerState format
     const playerStates: PlayerState[] = Array.from(this.serverPlayers.values()).map(sp => {
       const state = sp.getState();
+      const combatStats = sp.getCombatStats();
       // Find the original player state to get isReady
       const originalPlayer = Array.from(this.players.values()).find(p => p.socketId === state.socketId);
       return {
@@ -192,8 +193,12 @@ export class GameRoom {
         isDodging: state.isDodging,
         isAlive: state.isAlive,
         isReady: originalPlayer?.isReady || false,
-        lastUpdateTime: Date.now()
-      };
+        lastUpdateTime: Date.now(),
+        dps: combatStats.dps,
+        hps: combatStats.hps,
+        totalDamage: combatStats.totalDamage,
+        totalHeal: combatStats.totalHeal
+      } as any; // TODO: Update PlayerState type to include combat stats
     });
 
     // Collect all projectiles from all players
@@ -325,6 +330,9 @@ export class GameRoom {
 
           // Apply damage to boss
           const result = this.serverBoss.takeDamage(damageResult.damage);
+
+          // Track damage dealt for DPS calculation
+          serverPlayer.addDamageDealt(damageResult.damage);
 
           console.log(`💥 Projectile hit! ${serverPlayer.name} dealt ${damageResult.damage.toFixed(1)} damage (crit: ${damageResult.isCrit})`);
 

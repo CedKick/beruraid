@@ -1426,6 +1426,21 @@ export class GameScene extends Phaser.Scene {
   private updateUI() {
     // UI is handled by React overlay
     const playerStats = this.player.getStats();
+
+    // Solo mode: create single-player leaderboard
+    const playerScores = [
+      {
+        name: 'You',
+        characterId: this.gameConfig?.characterId || 'stark',
+        dps: this.combatStats.getDPS(),
+        hps: this.combatStats.getHPS(),
+        totalDamage: this.combatStats.getTotalDamage(),
+        totalHeal: this.combatStats.getTotalHeal(),
+        isAlive: playerStats.currentHp > 0,
+        isMe: true
+      }
+    ];
+
     const gameState = {
       playerHp: playerStats.currentHp,
       playerMaxHp: playerStats.maxHp,
@@ -1454,6 +1469,8 @@ export class GameScene extends Phaser.Scene {
       totalDamage: this.combatStats.getTotalDamage(),
       hps: this.combatStats.getHPS(),
       totalHeal: this.combatStats.getTotalHeal(),
+      playerScores: playerScores,
+      isPlayerDead: playerStats.currentHp <= 0,
     };
 
     // Emit event for React to catch
@@ -1473,6 +1490,18 @@ export class GameScene extends Phaser.Scene {
     const minutes = Math.floor(remainingSeconds / 60);
     const seconds = remainingSeconds % 60;
     const remainingTime = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+    // Build leaderboard from all players
+    const playerScores = serverState.players.map((p: any) => ({
+      name: p.name,
+      characterId: p.characterId,
+      dps: p.dps || 0,
+      hps: p.hps || 0,
+      totalDamage: p.totalDamage || 0,
+      totalHeal: p.totalHeal || 0,
+      isAlive: p.isAlive,
+      isMe: p.socketId === socketService.getSocketId()
+    }));
 
     const gameState = {
       playerHp: ourPlayer.stats.currentHp,
@@ -1498,10 +1527,12 @@ export class GameScene extends Phaser.Scene {
       remainingTimeSeconds: remainingSeconds,
       isTimeCritical: remainingSeconds < 30,
       isTimeWarning: remainingSeconds < 60,
-      dps: 0, // TODO: Calculate from server data
-      totalDamage: 0,
-      hps: 0,
-      totalHeal: 0,
+      dps: ourPlayer.dps || 0,
+      totalDamage: ourPlayer.totalDamage || 0,
+      hps: ourPlayer.hps || 0,
+      totalHeal: ourPlayer.totalHeal || 0,
+      playerScores: playerScores,
+      isPlayerDead: ourPlayer.stats.currentHp <= 0,
     };
 
     // Emit event for React to catch

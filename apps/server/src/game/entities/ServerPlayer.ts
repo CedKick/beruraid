@@ -92,6 +92,16 @@ export class ServerPlayer {
     right: false
   };
 
+  // Combat stats tracking
+  private totalDamageDealt = 0;
+  private totalHealDone = 0;
+  private combatStartTime = Date.now();
+  private lastDpsUpdateTime = Date.now();
+  private damageDealtSinceLastUpdate = 0;
+  private healDoneSinceLastUpdate = 0;
+  private currentDps = 0;
+  private currentHps = 0;
+
   constructor(socketId: string, name: string, characterId: string, x: number, y: number) {
     this.socketId = socketId;
     this.name = name;
@@ -134,6 +144,39 @@ export class ServerPlayer {
 
     // Update projectiles
     this.updateProjectiles(time, deltaSeconds);
+
+    // Update DPS/HPS every second
+    if (time - this.lastDpsUpdateTime >= 1000) {
+      const timeDiff = (time - this.lastDpsUpdateTime) / 1000;
+      this.currentDps = this.damageDealtSinceLastUpdate / timeDiff;
+      this.currentHps = this.healDoneSinceLastUpdate / timeDiff;
+
+      this.damageDealtSinceLastUpdate = 0;
+      this.healDoneSinceLastUpdate = 0;
+      this.lastDpsUpdateTime = time;
+    }
+  }
+
+  // Track damage dealt
+  addDamageDealt(damage: number): void {
+    this.totalDamageDealt += damage;
+    this.damageDealtSinceLastUpdate += damage;
+  }
+
+  // Track healing done
+  addHealDone(heal: number): void {
+    this.totalHealDone += heal;
+    this.healDoneSinceLastUpdate += heal;
+  }
+
+  // Get combat stats
+  getCombatStats(): { dps: number; hps: number; totalDamage: number; totalHeal: number } {
+    return {
+      dps: this.currentDps,
+      hps: this.currentHps,
+      totalDamage: this.totalDamageDealt,
+      totalHeal: this.totalHealDone
+    };
   }
 
   private applyMovement(delta: number): void {
