@@ -520,21 +520,27 @@ export class GameRoom {
           const healAmount = effect.data?.healAmount || 50;
           const healRadius = effect.radius || 120;
 
-          // Heal all players within radius (including Juhee herself)
-          for (const player of this.serverPlayers.values()) {
-            const distance = Math.sqrt(
-              Math.pow(player.x - effect.x, 2) + Math.pow(player.y - effect.y, 2)
-            );
+          // Check if we've already applied this effect (via custom flag)
+          if (!(effect as any).appliedEffect) {
+            // Heal all players within radius (including Juhee herself)
+            for (const player of this.serverPlayers.values()) {
+              const distance = Math.sqrt(
+                Math.pow(player.x - effect.x, 2) + Math.pow(player.y - effect.y, 2)
+              );
 
-            if (distance <= healRadius + 30) { // Player collision radius
-              const actualHealed = player.heal(healAmount);
-              ownerPlayer.addHealDone(actualHealed);
-              console.log(`💚 ${ownerPlayer.name}'s healing circle healed ${player.name} for ${actualHealed} HP`);
+              if (distance <= healRadius + 30) { // Player collision radius
+                const actualHealed = player.heal(healAmount);
+                ownerPlayer.addHealDone(actualHealed);
+                console.log(`💚 ${ownerPlayer.name}'s healing circle healed ${player.name} for ${actualHealed} HP`);
+              }
             }
+
+            // Mark as applied to avoid re-applying on next tick
+            (effect as any).appliedEffect = true;
           }
 
-          // Remove effect after application (instant effect, 500ms is just for animation)
-          skillsToRemove.push(effect.id);
+          // DON'T remove immediately - let expiresAt handle it (500ms visual duration)
+          // This allows clients to receive and render the visual effect
           break;
         }
 
@@ -546,28 +552,34 @@ export class GameRoom {
           const duration = effect.data?.duration || 15000;
           const buffRadius = effect.radius || 150;
 
-          // Apply buff to all players within radius
-          for (const player of this.serverPlayers.values()) {
-            const distance = Math.sqrt(
-              Math.pow(player.x - effect.x, 2) + Math.pow(player.y - effect.y, 2)
-            );
+          // Check if we've already applied this effect (via custom flag)
+          if (!(effect as any).appliedEffect) {
+            // Apply buff to all players within radius
+            for (const player of this.serverPlayers.values()) {
+              const distance = Math.sqrt(
+                Math.pow(player.x - effect.x, 2) + Math.pow(player.y - effect.y, 2)
+              );
 
-            if (distance <= buffRadius + 30) { // Player collision radius
-              player.addBuff({
-                type: 'juhee_blessing',
-                expiresAt: now + duration,
-                data: {
-                  atkBonus: atkBonus,
-                  defBonus: defBonus,
-                  atkSpeedBonus: atkSpeedBonus
-                }
-              });
-              console.log(`✨ ${ownerPlayer.name}'s blessing buffed ${player.name} (+${(atkBonus * 100).toFixed(0)}% ATK, +${(defBonus * 100).toFixed(0)}% DEF, +${(atkSpeedBonus * 100).toFixed(0)}% ATK SPD)`);
+              if (distance <= buffRadius + 30) { // Player collision radius
+                player.addBuff({
+                  type: 'juhee_blessing',
+                  expiresAt: now + duration,
+                  data: {
+                    atkBonus: atkBonus,
+                    defBonus: defBonus,
+                    atkSpeedBonus: atkSpeedBonus
+                  }
+                });
+                console.log(`✨ ${ownerPlayer.name}'s blessing buffed ${player.name} (+${(atkBonus * 100).toFixed(0)}% ATK, +${(defBonus * 100).toFixed(0)}% DEF, +${(atkSpeedBonus * 100).toFixed(0)}% ATK SPD)`);
+              }
             }
+
+            // Mark as applied to avoid re-applying on next tick
+            (effect as any).appliedEffect = true;
           }
 
-          // Remove effect after application
-          skillsToRemove.push(effect.id);
+          // DON'T remove immediately - let expiresAt handle it (500ms visual duration)
+          // This allows clients to receive and render the visual effect
           break;
         }
       }
