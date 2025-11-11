@@ -937,6 +937,14 @@ export class GameScene extends Phaser.Scene {
           if (gutsSkills) {
             gutsSkills.useSkill1(playerStats.currentHp, playerStats.maxHp, gutsSkills.isInvincible());
           }
+          const sungSkills = this.player.getSungSkills();
+          if (sungSkills) {
+            sungSkills.useSkill1(playerStats.currentMana, 0, 0);
+          }
+          const juheeSkills = this.player.getJuheeSkills();
+          if (juheeSkills) {
+            juheeSkills.useSkill1(playerStats.currentMana);
+          }
         }
         if (actions.skill2) {
           socket.emit('game:skill', { skillId: 2, targetX: mousePos.worldX, targetY: mousePos.worldY });
@@ -952,6 +960,14 @@ export class GameScene extends Phaser.Scene {
           const gutsSkills = this.player.getGutsSkills();
           if (gutsSkills) {
             gutsSkills.useSkill2(playerStats.currentMana);
+          }
+          const sungSkills = this.player.getSungSkills();
+          if (sungSkills) {
+            sungSkills.useSkill2(playerStats.currentMana);
+          }
+          const juheeSkills = this.player.getJuheeSkills();
+          if (juheeSkills) {
+            juheeSkills.useSkill2(playerStats.currentMana);
           }
         }
         if (actions.ultimate) {

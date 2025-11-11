@@ -236,19 +236,17 @@ export class Player {
       // Update Sung's skill system
       this.sungSkills.update(delta);
 
-      // Sung's Skill A (Barrage Strike)
+      // Sung's Skill A (Barrage Strike - AOE)
       if (actions.skill1) {
         const stats = this.statsManager.getStats();
-        const pointer = this.scene.input.activePointer;
-        const worldX = pointer.x;
-        const worldY = pointer.y;
-
-        // Emit event to notify scene about skill usage (for boss targeting)
-        this.scene.events.emit('sungUseBarrageStrike', {
-          currentMana: stats.currentMana,
-          targetX: worldX,
-          targetY: worldY
-        });
+        const result = this.sungSkills.useSkill1(stats.currentMana, 0, 0);
+        if (result.success) {
+          this.statsManager.useMana(result.manaCost);
+          // Emit event to notify scene about AOE damage
+          this.scene.events.emit('sungUseBarrageStrike', {
+            currentMana: stats.currentMana
+          });
+        }
       }
 
       // Sung's Skill E (Death Gamble)
@@ -823,5 +821,13 @@ export class Player {
 
   getFernSkills() {
     return this.fernSkills;
+  }
+
+  getSungSkills() {
+    return this.sungSkills;
+  }
+
+  getJuheeSkills() {
+    return this.juheeSkills;
   }
 }

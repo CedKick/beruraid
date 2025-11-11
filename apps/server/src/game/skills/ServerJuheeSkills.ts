@@ -205,6 +205,12 @@ export class ServerJuheeSkills {
     const healAmount = Math.floor(30 * (1 + maxHp / 1000)); // Heal amount for allies
     const bossAmount = Math.floor(30 * (1 + maxHp / 1000)); // Damage amount for boss
 
+    // Calculate velocity toward target
+    const angle = Math.atan2(targetY - playerY, targetX - playerX);
+    const speed = 400; // pixels per second
+    const velocityX = Math.cos(angle) * speed;
+    const velocityY = Math.sin(angle) * speed;
+
     // Create projectile heal/damage effect
     const effect: SkillEffect = {
       id: `${this.ownerId}_juhee_heal_proj_${this.skillEffectCounter++}`,
@@ -219,10 +225,12 @@ export class ServerJuheeSkills {
       createdAt: time,
       expiresAt: time + 5000, // 5 seconds max travel time
       damage: bossAmount, // Positive for damage on boss, will heal allies
+      velocityX: velocityX,
+      velocityY: velocityY,
       data: {
         targetX: targetX,
         targetY: targetY,
-        speed: 400, // pixels per second
+        speed: speed,
         healAmount: healAmount,
         bossAmount: bossAmount
       }

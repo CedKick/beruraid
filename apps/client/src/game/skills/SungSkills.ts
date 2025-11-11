@@ -32,14 +32,14 @@ export class SungSkills {
     }
   }
 
-  // Skill A: Barrage Strike (targeted attack)
+  // Skill A: Barrage Strike (AOE attack around player)
   useSkill1(currentMana: number, targetX: number, targetY: number): { success: boolean; manaCost: number } {
     if (this.skill1Cooldown > 0 || currentMana < this.skill1ManaCost) {
       return { success: false, manaCost: 0 };
     }
 
-    // Create visual effect - dagger projectile
-    this.createBarrageStrike(targetX, targetY);
+    // Create visual effect - AOE around player
+    this.createBarrageStrike();
 
     // Set cooldown
     this.skill1Cooldown = this.skill1CooldownMax;
@@ -50,93 +50,121 @@ export class SungSkills {
     };
   }
 
-  private createBarrageStrike(targetX: number, targetY: number) {
+  private createBarrageStrike() {
     const startX = this.player.x;
     const startY = this.player.y;
+    const radius = 80; // AOE radius
+    const duration = 300; // Quick burst
 
-    // Create dark projectile with better animation
-    const projectile = this.scene.add.circle(
+    // Create main purple AOE circle
+    const aoeCircle = this.scene.add.circle(
       startX,
       startY,
-      10,
+      radius,
       0x8b00ff, // Purple/dark color
-      1
-    );
-    projectile.setStrokeStyle(3, 0xda70d6, 1);
-    projectile.setDepth(12);
-
-    this.activeSkill1Effects.push(projectile);
-
-    // Add trail effect
-    const trail = this.scene.add.circle(
-      startX,
-      startY,
-      8,
-      0x8b00ff,
       0.5
     );
-    trail.setDepth(11);
+    aoeCircle.setStrokeStyle(4, 0xda70d6, 1);
+    aoeCircle.setDepth(12);
 
-    // Calculate angle
-    const angle = Phaser.Math.Angle.Between(startX, startY, targetX, targetY);
-    const distance = Phaser.Math.Distance.Between(startX, startY, targetX, targetY);
-    const duration = Math.min(distance / 1.5, 500); // Faster projectile
+    this.activeSkill1Effects.push(aoeCircle);
 
-    // Pulsing animation for projectile
+    // Create inner circle for depth
+    const innerCircle = this.scene.add.circle(
+      startX,
+      startY,
+      radius * 0.6,
+      0x8b00ff,
+      0.3
+    );
+    innerCircle.setStrokeStyle(3, 0xda70d6, 0.8);
+    innerCircle.setDepth(11);
+
+    // Pulse and expand animation
     this.scene.tweens.add({
-      targets: projectile,
-      scale: { from: 1, to: 1.2 },
-      duration: 150,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut'
-    });
-
-    // Animate projectile to target
-    this.scene.tweens.add({
-      targets: projectile,
-      x: targetX,
-      y: targetY,
+      targets: aoeCircle,
+      scale: 1.4,
+      alpha: 0,
       duration: duration,
       ease: 'Cubic.easeOut',
       onComplete: () => {
-        // Impact effect - multiple circles
-        for (let i = 0; i < 3; i++) {
-          const delay = i * 50;
-          this.scene.time.delayedCall(delay, () => {
-            const impact = this.scene.add.circle(targetX, targetY, 10 + i * 5, 0x8b00ff, 0.7 - i * 0.2);
-            impact.setDepth(12);
-            impact.setStrokeStyle(2, 0xda70d6, 0.8);
-
-            this.scene.tweens.add({
-              targets: impact,
-              scale: 2.5,
-              alpha: 0,
-              duration: 400,
-              ease: 'Cubic.easeOut',
-              onComplete: () => impact.destroy()
-            });
-          });
+        if (aoeCircle && aoeCircle.scene) {
+          aoeCircle.destroy();
         }
-
-        projectile.destroy();
-        const index = this.activeSkill1Effects.indexOf(projectile);
+        const index = this.activeSkill1Effects.indexOf(aoeCircle);
         if (index > -1) {
           this.activeSkill1Effects.splice(index, 1);
         }
       }
     });
 
-    // Animate trail to follow (with delay)
+    // Counter animation for inner circle
     this.scene.tweens.add({
-      targets: trail,
-      x: targetX,
-      y: targetY,
+      targets: innerCircle,
+      scale: 1.2,
+      alpha: 0,
       duration: duration,
       ease: 'Cubic.easeOut',
-      alpha: 0,
-      onComplete: () => trail.destroy()
+      onComplete: () => {
+        if (innerCircle && innerCircle.scene) {
+          innerCircle.destroy();
+        }
+      }
     });
+
+    // Add multiple dagger burst effects radiating outward
+    const daggerCount = 12;
+    for (let i = 0; i < daggerCount; i++) {
+      const angle = (Math.PI * 2 * i) / daggerCount;
+      const distance = radius * 0.8;
+
+      const dagger = this.scene.add.circle(
+        startX,
+        startY,
+        8,
+        0xda70d6,
+        1
+      );
+      dagger.setStrokeStyle(2, 0xffffff, 0.8);
+      dagger.setDepth(13);
+
+      // Daggers shoot outward
+      this.scene.tweens.add({
+        targets: dagger,
+        x: startX + Math.cos(angle) * distance,
+        y: startY + Math.sin(angle) * distance,
+        scale: 0.3,
+        alpha: 0,
+        duration: 300,
+        ease: 'Cubic.easeOut',
+        onComplete: () => dagger.destroy()
+      });
+    }
+
+    // Add impact waves
+    for (let i = 0; i < 2; i++) {
+      const delay = i * 100;
+      this.scene.time.delayedCall(delay, () => {
+        const wave = this.scene.add.circle(
+          startX,
+          startY,
+          20,
+          0x8b00ff,
+          0.4
+        );
+        wave.setStrokeStyle(2, 0xda70d6, 0.6);
+        wave.setDepth(10);
+
+        this.scene.tweens.add({
+          targets: wave,
+          scale: radius / 20,
+          alpha: 0,
+          duration: 250,
+          ease: 'Cubic.easeOut',
+          onComplete: () => wave.destroy()
+        });
+      });
+    }
   }
 
   // Skill E: Death Gamble (buff circle)
