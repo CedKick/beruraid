@@ -36,7 +36,8 @@
       "Bash(dir \"C:\\Users\\CedPC\\Desktop\\MesDev\\BeruRaid\\apps\\client\\public\\assets\" /b)",
       "Bash(dir \"C:\\Users\\CedPC\\Desktop\\MesDev\\BeruRaid\\apps\\server\\src\\game\\skills\" /b)",
       "Bash(timeout /t 5 /nobreak)",
-      "Bash(ping:*)"
+      "Bash(ping:*)",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": []
