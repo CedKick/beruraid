@@ -1077,11 +1077,13 @@ export class GameScene extends Phaser.Scene {
 
           case 'juhee_heal_projectile': {
             // Create a standalone heal projectile visual that updates with server position
-            const healCircle = this.add.circle(0, 0, effect.radius || 12, 0x00ff88, 0.8);
+            // Use 12 for visual radius (not the collision radius from server)
+            const visualRadius = 12;
+            const healCircle = this.add.circle(0, 0, visualRadius, 0x00ff88, 0.8);
             healCircle.setStrokeStyle(2, 0x00ff00, 1);
             healCircle.setDepth(90);
 
-            const sparkle = this.add.circle(0, 0, (effect.radius || 12) * 0.6, 0xccffcc, 0.6);
+            const sparkle = this.add.circle(0, 0, visualRadius * 0.6, 0xccffcc, 0.6);
             sparkle.setDepth(89);
 
             const container = this.add.container(effect.x, effect.y, [sparkle, healCircle]);
