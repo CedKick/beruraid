@@ -1561,7 +1561,7 @@ export class GameScene extends Phaser.Scene {
       bossMaxHp: serverState.boss.maxHp,
       bossRageCount: serverState.boss.rageCount,
       bossBarsDefeated: serverState.boss.barsDefeated,
-      bossNextBarMaxHp: serverState.boss.maxHp,
+      bossNextBarMaxHp: serverState.boss.nextBarMaxHp,
       bossTotalDamage: serverState.boss.totalDamageDealt || 0,
       bossBarMultiplier: serverState.boss.barsDefeated + 1,
       skill1Cooldown: 0, // TODO: Get from server

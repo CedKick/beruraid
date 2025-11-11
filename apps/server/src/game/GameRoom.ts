@@ -211,12 +211,13 @@ export class GameRoom {
       boss: {
         hp: bossState.hp,
         maxHp: bossState.maxHp,
+        nextBarMaxHp: this.serverBoss.getNextBarMaxHp(),
         position: { x: bossState.x, y: bossState.y },
         rageCount: bossState.rageCount,
         barsDefeated: bossState.barsDefeated,
         isStunned: bossState.isStunned,
         stunEndTime: bossState.stunEndTime,
-        totalDamageDealt: 0, // TODO: track this
+        totalDamageDealt: this.serverBoss.getTotalDamageDealt(),
         attacks: bossState.attacks,
         velocityX: bossState.velocityX,
         velocityY: bossState.velocityY

@@ -33,6 +33,7 @@ export interface Projectile {
 export interface BossState {
   hp: number;
   maxHp: number;
+  nextBarMaxHp: number; // HP of the next bar (for UI display)
   position: {
     x: number;
     y: number;

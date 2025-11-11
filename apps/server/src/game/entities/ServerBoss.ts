@@ -41,7 +41,10 @@ export class ServerBoss {
   private maxHp: number;
   private rageCount = 0;
   private barsDefeated = 0;
-  private barHpIncrement = 500;
+
+  // Progressive HP scaling (same as solo mode)
+  private baseHp: number;
+  private hpBarMultiplier = 1.69;
 
   private defense = 5000;
   private defPen = 0;
@@ -86,9 +89,9 @@ export class ServerBoss {
     this.worldWidth = worldWidth;
     this.worldHeight = worldHeight;
 
-    // Calculate initial HP with player scaling
-    const baseHp = 100;
-    this.maxHp = baseHp * Math.pow(1.5, playerCount - 1);
+    // Calculate base HP with player scaling (same as solo mode)
+    this.baseHp = 100 * Math.pow(1.5, playerCount - 1);
+    this.maxHp = this.baseHp; // First bar = baseHp
     this.hp = this.maxHp;
   }
 
@@ -327,7 +330,7 @@ export class ServerBoss {
     let barWasDefeated = false;
     let newMaxHp = this.maxHp;
 
-    // Apply damage, potentially across multiple bars
+    // Apply damage, potentially across multiple bars (same logic as solo mode)
     while (remainingDamage > 0) {
       const damageToThisBar = Math.min(remainingDamage, this.hp);
       this.hp -= damageToThisBar;
@@ -339,8 +342,9 @@ export class ServerBoss {
         this.barsDefeated++;
         this.rageCount++;
 
-        // Calculate new bar HP
-        newMaxHp = this.barHpIncrement * (this.barsDefeated + 1);
+        // Calculate new bar HP using exponential scaling (same as solo mode)
+        // Formula: baseHp * (1.69)^barsDefeated
+        newMaxHp = Math.floor(this.baseHp * Math.pow(this.hpBarMultiplier, this.barsDefeated));
         this.maxHp = newMaxHp;
         this.hp = newMaxHp;
 
@@ -365,6 +369,30 @@ export class ServerBoss {
 
   isDead(): boolean {
     return this.hp <= 0 && this.barsDefeated > 0;
+  }
+
+  /**
+   * Get the HP of the next bar (for UI display, same as solo mode)
+   */
+  getNextBarMaxHp(): number {
+    return Math.floor(this.baseHp * Math.pow(this.hpBarMultiplier, this.barsDefeated + 1));
+  }
+
+  /**
+   * Get total damage dealt so far (same calculation as solo mode)
+   */
+  getTotalDamageDealt(): number {
+    let total = 0;
+
+    // Add damage from defeated bars
+    for (let i = 0; i < this.barsDefeated; i++) {
+      total += Math.floor(this.baseHp * Math.pow(this.hpBarMultiplier, i));
+    }
+
+    // Add damage to current bar
+    total += (this.maxHp - this.hp);
+
+    return total;
   }
 
   getState(): BossState {
