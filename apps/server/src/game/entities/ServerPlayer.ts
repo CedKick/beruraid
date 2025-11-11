@@ -8,22 +8,7 @@ import { ServerStarkSkills } from '../skills/ServerStarkSkills.js';
 import { ServerGutsSkills } from '../skills/ServerGutsSkills.js';
 import { ServerJuheeSkills } from '../skills/ServerJuheeSkills.js';
 import { ServerSungSkills } from '../skills/ServerSungSkills.js';
-import { SkillEffect, PlayerBuff, ElementType } from '@beruraid/shared';
-
-export interface Projectile {
-  id: string;
-  ownerId: string;
-  type: 'melee' | 'ranged';
-  x: number;
-  y: number;
-  velocityX: number;
-  velocityY: number;
-  damage: number;
-  createdAt: number;
-  expiresAt: number;
-  radius: number;
-  angle?: number; // For melee slash rotation
-}
+import { SkillEffect, PlayerBuff, ElementType, Projectile } from '@beruraid/shared';
 
 export interface PlayerStats {
   level: number;
@@ -392,6 +377,39 @@ export class ServerPlayer {
       createdAt: time,
       expiresAt: time + 3000, // 3 seconds
       radius: 8,
+      angle: angle
+    };
+
+    this.projectiles.push(projectile);
+    return projectile;
+  }
+
+  createHealProjectile(time: number, targetX: number, targetY: number): Projectile | null {
+    if (time - this.lastRangedAttackTime < this.rangedAttackCooldown) {
+      return null;
+    }
+
+    this.lastRangedAttackTime = time;
+
+    const angle = Math.atan2(targetY - this.y, targetX - this.x);
+    const speed = 400;
+
+    const healAmount = Math.floor(30 * (1 + this.stats.maxHp / 1000));
+    const damageAmount = Math.floor(30 * (1 + this.stats.maxHp / 1000));
+
+    const projectile: Projectile = {
+      id: `${this.socketId}_heal_${this.projectileIdCounter++}`,
+      ownerId: this.socketId,
+      type: 'heal',
+      x: this.x,
+      y: this.y,
+      velocityX: Math.cos(angle) * speed,
+      velocityY: Math.sin(angle) * speed,
+      damage: damageAmount,
+      healAmount: healAmount,
+      createdAt: time,
+      expiresAt: time + 5000, // 5 seconds
+      radius: 12,
       angle: angle
     };
 

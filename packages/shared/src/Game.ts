@@ -18,7 +18,7 @@ export interface BossAttack {
 export interface Projectile {
   id: string;
   ownerId: string;
-  type: 'melee' | 'ranged';
+  type: 'melee' | 'ranged' | 'heal';
   x: number;
   y: number;
   velocityX: number;
@@ -28,6 +28,7 @@ export interface Projectile {
   expiresAt: number;
   radius: number;
   angle?: number;
+  healAmount?: number; // For heal projectiles
 }
 
 export interface SkillEffect {

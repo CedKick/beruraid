@@ -240,13 +240,6 @@ export class GameRoom {
     const allProjectiles = Array.from(this.serverPlayers.values())
       .flatMap(player => player.getProjectiles());
 
-    // LOG skillEffects BEFORE sending
-    if (this.skillEffects.length > 0) {
-      console.log(`📡 [GET_STATE] Sending ${this.skillEffects.length} skillEffects to clients:`);
-      this.skillEffects.forEach(effect => {
-        console.log(`  - ${effect.effectType} (${effect.id}) at (${effect.x.toFixed(0)}, ${effect.y.toFixed(0)}) owner: ${effect.ownerName}`);
-      });
-    }
 
     return {
       roomId: this.id,
@@ -355,38 +348,70 @@ export class GameRoom {
 
     const bossState = this.serverBoss.getState();
     const bossRadius = 50; // Boss collision radius
+    const playerRadius = 30; // Player collision radius
 
     for (const serverPlayer of this.serverPlayers.values()) {
       const projectiles = serverPlayer.getProjectiles();
 
       for (const projectile of projectiles) {
-        // Check distance between projectile and boss
-        const dx = projectile.x - bossState.x;
-        const dy = projectile.y - bossState.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
+        // Special handling for heal projectiles
+        if (projectile.type === 'heal') {
+          let hitSomething = false;
 
-        // Collision detected
-        if (distance <= projectile.radius + bossRadius) {
-          // Calculate damage
-          const damageResult = serverPlayer.calculateDamage(
-            projectile.damage,
-            bossState.defense
-          );
+          // First check collision with players (heal)
+          for (const targetPlayer of this.serverPlayers.values()) {
+            const dx = projectile.x - targetPlayer.x;
+            const dy = projectile.y - targetPlayer.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
 
-          // Apply damage to boss (with element for weakness multiplier)
-          const result = this.serverBoss.takeDamage(damageResult.damage, serverPlayer.getElement());
+            if (distance <= projectile.radius + playerRadius) {
+              // Heal the player
+              const healAmount = projectile.healAmount || 30;
+              targetPlayer.heal(healAmount);
+              serverPlayer.addHealDone(healAmount);
 
-          // Track damage dealt for DPS calculation
-          serverPlayer.addDamageDealt(damageResult.damage);
-
-          console.log(`💥 Projectile hit! ${serverPlayer.name} dealt ${damageResult.damage.toFixed(1)} damage (crit: ${damageResult.isCrit})`);
-
-          if (result.barDefeated) {
-            console.log(`🔥 Boss bar defeated! Rage count: ${result.newRageCount}`);
+              serverPlayer.removeProjectile(projectile.id);
+              hitSomething = true;
+              break;
+            }
           }
 
-          // Remove projectile after hit
-          serverPlayer.removeProjectile(projectile.id);
+          // If didn't hit a player, check boss collision (damage)
+          if (!hitSomething) {
+            const dx = projectile.x - bossState.x;
+            const dy = projectile.y - bossState.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance <= projectile.radius + bossRadius) {
+              const damageResult = serverPlayer.calculateDamage(
+                projectile.damage,
+                bossState.defense
+              );
+              this.serverBoss.takeDamage(damageResult.damage, serverPlayer.getElement());
+              serverPlayer.addDamageDealt(damageResult.damage);
+              serverPlayer.removeProjectile(projectile.id);
+            }
+          }
+        } else {
+          // Normal projectile - only check boss collision
+          const dx = projectile.x - bossState.x;
+          const dy = projectile.y - bossState.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance <= projectile.radius + bossRadius) {
+            const damageResult = serverPlayer.calculateDamage(
+              projectile.damage,
+              bossState.defense
+            );
+            const result = this.serverBoss.takeDamage(damageResult.damage, serverPlayer.getElement());
+            serverPlayer.addDamageDealt(damageResult.damage);
+
+            if (result.barDefeated) {
+              console.log(`🔥 Boss bar defeated! Rage count: ${result.newRageCount}`);
+            }
+
+            serverPlayer.removeProjectile(projectile.id);
+          }
         }
       }
     }
@@ -481,8 +506,6 @@ export class GameRoom {
           const bossAmount = effect.data?.bossAmount || 30;
           const projectileRadius = effect.radius || 20;
 
-          console.log(`🔍 [HEAL_PROJ] Checking collision for projectile at (${effect.x.toFixed(1)}, ${effect.y.toFixed(1)})`);
-
           // Check collision with players first
           let hitApplied = false;
           for (const player of this.serverPlayers.values()) {
@@ -490,12 +513,9 @@ export class GameRoom {
               Math.pow(player.x - effect.x, 2) + Math.pow(player.y - effect.y, 2)
             );
 
-            console.log(`🔍 [HEAL_PROJ] Distance to ${player.name}: ${distance.toFixed(1)} (threshold: ${projectileRadius + 30})`);
-
             if (distance <= projectileRadius + 30) { // Player collision radius
               player.heal(healAmount);
               ownerPlayer.addHealDone(healAmount);
-              console.log(`💚 ${ownerPlayer.name}'s heal projectile healed ${player.name} for ${healAmount} HP`);
               skillsToRemove.push(effect.id);
               hitApplied = true;
               break;
@@ -508,13 +528,10 @@ export class GameRoom {
               Math.pow(bossState.x - effect.x, 2) + Math.pow(bossState.y - effect.y, 2)
             );
 
-            console.log(`🔍 [HEAL_PROJ] Distance to BOSS: ${distanceToBoss.toFixed(1)} (threshold: ${projectileRadius + bossRadius})`);
-
             if (distanceToBoss <= projectileRadius + bossRadius) {
               const damageResult = ownerPlayer.calculateDamage(bossAmount, bossState.defense);
               this.serverBoss.takeDamage(damageResult.damage);
               ownerPlayer.addDamageDealt(damageResult.damage);
-              console.log(`💥 ${ownerPlayer.name}'s heal projectile hit the BOSS for ${damageResult.damage.toFixed(1)} damage!`);
               skillsToRemove.push(effect.id);
             }
           }
@@ -762,54 +779,14 @@ export class GameRoom {
    * Handle player right-click (for Juhee heal projectile)
    */
   public handlePlayerRightClick(socketId: string, targetX: number, targetY: number): void {
-    console.log(`🎯 [RIGHT_CLICK] handlePlayerRightClick called for socketId: ${socketId}, target: (${targetX}, ${targetY})`);
-
     const serverPlayer = this.serverPlayers.get(socketId);
-    if (!serverPlayer) {
-      console.log(`❌ [RIGHT_CLICK] No serverPlayer found for socketId: ${socketId}`);
-      return;
-    }
+    if (!serverPlayer) return;
 
     // Only Juhee can use right-click heal
-    if (serverPlayer.characterId !== 'juhee') {
-      console.log(`❌ [RIGHT_CLICK] Player ${serverPlayer.name} is not Juhee (${serverPlayer.characterId})`);
-      return;
-    }
+    if (serverPlayer.characterId !== 'juhee') return;
 
-    console.log(`🎯 [RIGHT_CLICK] Juhee ${serverPlayer.name} attempting right-click heal`);
-
-    const result = serverPlayer.useRightClick(Date.now(), targetX, targetY);
-
-    console.log(`🎯 [RIGHT_CLICK] Result:`, {
-      success: result.success,
-      hasEffect: !!result.effect,
-      effectType: result.effect?.effectType,
-      effectId: result.effect?.id,
-      effectPosition: result.effect ? `(${result.effect.x}, ${result.effect.y})` : 'N/A',
-      velocity: result.effect ? `(${result.effect.velocityX}, ${result.effect.velocityY})` : 'N/A',
-      manaCost: result.manaCost
-    });
-
-    if (result.success) {
-      // Consume mana
-      if (result.manaCost) {
-        serverPlayer.useMana(result.manaCost);
-        console.log(`💧 [RIGHT_CLICK] Consumed ${result.manaCost} mana`);
-      }
-
-      // Add heal projectile effect
-      if (result.effect) {
-        this.skillEffects.push(result.effect);
-        console.log(`✅ [RIGHT_CLICK] Heal projectile added to skillEffects array. Total effects: ${this.skillEffects.length}`);
-        console.log(`📊 [RIGHT_CLICK] Effect details:`, JSON.stringify(result.effect, null, 2));
-      } else {
-        console.log(`⚠️ [RIGHT_CLICK] No effect to add!`);
-      }
-
-      console.log(`💚 [RIGHT_CLICK] ${serverPlayer.name} successfully used Right-click heal projectile`);
-    } else {
-      console.log(`❌ [RIGHT_CLICK] Right-click heal failed for ${serverPlayer.name}`);
-    }
+    // Create heal projectile (same system as ranged attacks)
+    serverPlayer.createHealProjectile(Date.now(), targetX, targetY);
   }
 
   /**
