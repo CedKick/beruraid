@@ -54,43 +54,70 @@ export class SungSkills {
     const startX = this.player.x;
     const startY = this.player.y;
 
-    // Create dark projectile
+    // Create dark projectile with better animation
     const projectile = this.scene.add.circle(
       startX,
       startY,
-      8,
+      10,
       0x8b00ff, // Purple/dark color
-      0.9
+      1
     );
-    projectile.setStrokeStyle(2, 0x4b0082, 1);
+    projectile.setStrokeStyle(3, 0xda70d6, 1);
     projectile.setDepth(12);
 
     this.activeSkill1Effects.push(projectile);
 
+    // Add trail effect
+    const trail = this.scene.add.circle(
+      startX,
+      startY,
+      8,
+      0x8b00ff,
+      0.5
+    );
+    trail.setDepth(11);
+
     // Calculate angle
     const angle = Phaser.Math.Angle.Between(startX, startY, targetX, targetY);
     const distance = Phaser.Math.Distance.Between(startX, startY, targetX, targetY);
-    const duration = Math.min(distance / 2, 400); // Fast projectile
+    const duration = Math.min(distance / 1.5, 500); // Faster projectile
 
-    // Animate to target
+    // Pulsing animation for projectile
+    this.scene.tweens.add({
+      targets: projectile,
+      scale: { from: 1, to: 1.2 },
+      duration: 150,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+
+    // Animate projectile to target
     this.scene.tweens.add({
       targets: projectile,
       x: targetX,
       y: targetY,
       duration: duration,
-      ease: 'Linear',
+      ease: 'Cubic.easeOut',
       onComplete: () => {
-        // Impact effect
-        const impact = this.scene.add.circle(targetX, targetY, 15, 0x8b00ff, 0.6);
-        impact.setDepth(12);
+        // Impact effect - multiple circles
+        for (let i = 0; i < 3; i++) {
+          const delay = i * 50;
+          this.scene.time.delayedCall(delay, () => {
+            const impact = this.scene.add.circle(targetX, targetY, 10 + i * 5, 0x8b00ff, 0.7 - i * 0.2);
+            impact.setDepth(12);
+            impact.setStrokeStyle(2, 0xda70d6, 0.8);
 
-        this.scene.tweens.add({
-          targets: impact,
-          scale: 2,
-          alpha: 0,
-          duration: 300,
-          onComplete: () => impact.destroy()
-        });
+            this.scene.tweens.add({
+              targets: impact,
+              scale: 2.5,
+              alpha: 0,
+              duration: 400,
+              ease: 'Cubic.easeOut',
+              onComplete: () => impact.destroy()
+            });
+          });
+        }
 
         projectile.destroy();
         const index = this.activeSkill1Effects.indexOf(projectile);
@@ -98,6 +125,17 @@ export class SungSkills {
           this.activeSkill1Effects.splice(index, 1);
         }
       }
+    });
+
+    // Animate trail to follow (with delay)
+    this.scene.tweens.add({
+      targets: trail,
+      x: targetX,
+      y: targetY,
+      duration: duration,
+      ease: 'Cubic.easeOut',
+      alpha: 0,
+      onComplete: () => trail.destroy()
     });
   }
 
@@ -126,62 +164,124 @@ export class SungSkills {
   private createDeathGamble(isBlue: boolean) {
     const radius = 80;
     const color = isBlue ? 0x00bfff : 0xff0000; // Blue or Red
+    const glowColor = isBlue ? 0x87ceeb : 0xff6347; // Lighter shade for glow
     const duration = 5000; // 5 seconds
 
-    // Create circle around player
+    // Create main circle around player
     const circle = this.scene.add.circle(
       this.player.x,
       this.player.y,
       radius,
       color,
-      0.3
+      0.35
     );
-    circle.setStrokeStyle(4, color, 0.8);
+    circle.setStrokeStyle(5, glowColor, 0.9);
     circle.setDepth(9);
 
     this.activeSkill2Effects.push(circle);
 
-    // Pulse animation
+    // Create inner circle for more depth
+    const innerCircle = this.scene.add.circle(
+      this.player.x,
+      this.player.y,
+      radius * 0.6,
+      color,
+      0.2
+    );
+    innerCircle.setStrokeStyle(3, glowColor, 0.7);
+    innerCircle.setDepth(9);
+
+    // Pulse animation for main circle
     this.scene.tweens.add({
       targets: circle,
-      scale: { from: 1, to: 1.15 },
-      alpha: { from: 0.3, to: 0.5 },
-      duration: 500,
+      scale: { from: 1, to: 1.2 },
+      alpha: { from: 0.35, to: 0.55 },
+      duration: 600,
       yoyo: true,
-      repeat: Math.floor(duration / 1000) - 1,
+      repeat: Math.floor(duration / 1200),
       ease: 'Sine.easeInOut'
     });
 
-    // Make circle follow player
-    const updateCirclePosition = () => {
+    // Counter-pulse animation for inner circle
+    this.scene.tweens.add({
+      targets: innerCircle,
+      scale: { from: 1, to: 0.85 },
+      alpha: { from: 0.2, to: 0.4 },
+      duration: 600,
+      yoyo: true,
+      repeat: Math.floor(duration / 1200),
+      ease: 'Sine.easeInOut'
+    });
+
+    // Add rotating energy particles
+    const particleCount = isBlue ? 8 : 12; // More particles for red (more dangerous)
+    const particles: Phaser.GameObjects.Arc[] = [];
+
+    for (let i = 0; i < particleCount; i++) {
+      const angle = (Math.PI * 2 * i) / particleCount;
+      const distance = radius * 0.75;
+      const particle = this.scene.add.circle(
+        this.player.x + Math.cos(angle) * distance,
+        this.player.y + Math.sin(angle) * distance,
+        4,
+        glowColor,
+        0.8
+      );
+      particle.setDepth(10);
+      particles.push(particle);
+    }
+
+    // Make circles and particles follow player
+    const updatePositions = () => {
       if (circle && circle.scene) {
         circle.x = this.player.x;
         circle.y = this.player.y;
+        innerCircle.x = this.player.x;
+        innerCircle.y = this.player.y;
+
+        // Rotate particles around player
+        const rotationSpeed = isBlue ? 0.02 : 0.04; // Red rotates faster
+        particles.forEach((particle, i) => {
+          if (particle && particle.scene) {
+            const baseAngle = (Math.PI * 2 * i) / particleCount;
+            const currentTime = Date.now() / 1000;
+            const angle = baseAngle + currentTime * rotationSpeed;
+            const distance = radius * 0.75;
+            particle.x = this.player.x + Math.cos(angle) * distance;
+            particle.y = this.player.y + Math.sin(angle) * distance;
+          }
+        });
       }
     };
 
     const updateEvent = this.scene.time.addEvent({
       delay: 16, // ~60 FPS
-      callback: updateCirclePosition,
+      callback: updatePositions,
       loop: true
     });
 
     // Destroy after duration
     this.scene.time.delayedCall(duration, () => {
       updateEvent.remove();
+
+      // Fade out animation
       if (circle && circle.scene) {
         this.scene.tweens.add({
-          targets: circle,
+          targets: [circle, innerCircle, ...particles],
           alpha: 0,
-          scale: 0.5,
-          duration: 200,
+          scale: 0.3,
+          duration: 300,
+          ease: 'Cubic.easeIn',
           onComplete: () => {
-            if (circle && circle.scene) {
-              circle.destroy();
-            }
+            if (circle && circle.scene) circle.destroy();
+            if (innerCircle && innerCircle.scene) innerCircle.destroy();
+            particles.forEach(p => {
+              if (p && p.scene) p.destroy();
+            });
           }
         });
       }
+
       const index = this.activeSkill2Effects.indexOf(circle);
       if (index > -1) {
         this.activeSkill2Effects.splice(index, 1);

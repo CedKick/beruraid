@@ -55,24 +55,35 @@ export class JuheeSkills {
     const radius = 120;
     const duration = 500;
 
-    // Create green healing circle
+    // Create green healing circle with glow
     const healCircle = this.scene.add.circle(
       this.player.x,
       this.player.y,
       radius,
-      0x00ff00, // Green
-      0.4
+      0x00ff88, // Brighter green
+      0.45
     );
-    healCircle.setStrokeStyle(3, 0x32cd32, 0.8);
+    healCircle.setStrokeStyle(4, 0x00ff00, 1);
     healCircle.setDepth(10);
 
     this.activeSkill1Effects.push(healCircle);
 
-    // Pulse animation
+    // Create inner healing circle
+    const innerCircle = this.scene.add.circle(
+      this.player.x,
+      this.player.y,
+      radius * 0.5,
+      0x32cd32,
+      0.3
+    );
+    innerCircle.setStrokeStyle(3, 0x98fb98, 0.8);
+    innerCircle.setDepth(10);
+
+    // Pulse animation for outer circle
     this.scene.tweens.add({
       targets: healCircle,
-      scale: 1.2,
-      alpha: 0.2,
+      scale: 1.3,
+      alpha: 0.15,
       duration: duration,
       ease: 'Cubic.easeOut',
       onComplete: () => {
@@ -94,22 +105,74 @@ export class JuheeSkills {
       }
     });
 
-    // Add sparkle particles
-    for (let i = 0; i < 8; i++) {
-      const angle = (Math.PI * 2 * i) / 8;
-      const x = this.player.x + Math.cos(angle) * radius * 0.7;
-      const y = this.player.y + Math.sin(angle) * radius * 0.7;
+    // Counter-pulse for inner circle
+    this.scene.tweens.add({
+      targets: innerCircle,
+      scale: 0.7,
+      alpha: 0.1,
+      duration: duration,
+      ease: 'Cubic.easeOut',
+      onComplete: () => {
+        this.scene.tweens.add({
+          targets: innerCircle,
+          alpha: 0,
+          duration: 200,
+          onComplete: () => {
+            if (innerCircle && innerCircle.scene) {
+              innerCircle.destroy();
+            }
+          }
+        });
+      }
+    });
 
-      const sparkle = this.scene.add.circle(x, y, 5, 0xffffff, 0.8);
+    // Add sparkle particles with better animation
+    const sparkleCount = 12;
+    for (let i = 0; i < sparkleCount; i++) {
+      const angle = (Math.PI * 2 * i) / sparkleCount;
+      const startRadius = radius * 0.4;
+      const x = this.player.x + Math.cos(angle) * startRadius;
+      const y = this.player.y + Math.sin(angle) * startRadius;
+
+      const sparkle = this.scene.add.circle(x, y, 6, 0xffffff, 1);
       sparkle.setDepth(11);
+      sparkle.setStrokeStyle(2, 0x00ff00, 0.8);
 
+      // Sparkles move outward and upward
       this.scene.tweens.add({
         targets: sparkle,
-        y: y - 30,
+        x: this.player.x + Math.cos(angle) * radius * 1.2,
+        y: y - 40,
+        scale: 0.3,
         alpha: 0,
-        duration: 600,
+        duration: 700,
         ease: 'Cubic.easeOut',
         onComplete: () => sparkle.destroy()
+      });
+    }
+
+    // Add healing waves
+    for (let i = 0; i < 3; i++) {
+      const delay = i * 150;
+      this.scene.time.delayedCall(delay, () => {
+        const wave = this.scene.add.circle(
+          this.player.x,
+          this.player.y,
+          20,
+          0x00ff00,
+          0.4
+        );
+        wave.setStrokeStyle(2, 0x98fb98, 0.6);
+        wave.setDepth(9);
+
+        this.scene.tweens.add({
+          targets: wave,
+          scale: radius / 20,
+          alpha: 0,
+          duration: 400,
+          ease: 'Cubic.easeOut',
+          onComplete: () => wave.destroy()
+        });
       });
     }
   }
@@ -136,24 +199,35 @@ export class JuheeSkills {
     const radius = 150;
     const duration = 500;
 
-    // Create golden blessing circle
+    // Create golden blessing circle with intense glow
     const blessCircle = this.scene.add.circle(
       this.player.x,
       this.player.y,
       radius,
       0xffd700, // Gold
-      0.3
+      0.4
     );
-    blessCircle.setStrokeStyle(4, 0xffa500, 0.8);
+    blessCircle.setStrokeStyle(5, 0xffaa00, 1);
     blessCircle.setDepth(10);
 
     this.activeSkill2Effects.push(blessCircle);
 
-    // Expand animation
+    // Inner golden ring
+    const innerRing = this.scene.add.circle(
+      this.player.x,
+      this.player.y,
+      radius * 0.6,
+      0xffa500,
+      0.3
+    );
+    innerRing.setStrokeStyle(4, 0xffd700, 0.9);
+    innerRing.setDepth(10);
+
+    // Expand animation for outer circle
     this.scene.tweens.add({
       targets: blessCircle,
-      scale: 1.3,
-      alpha: 0.1,
+      scale: 1.4,
+      alpha: 0.05,
       duration: duration,
       ease: 'Cubic.easeOut',
       onComplete: () => {
@@ -175,37 +249,82 @@ export class JuheeSkills {
       }
     });
 
-    // Add burst effect
-    for (let i = 0; i < 12; i++) {
-      const angle = (Math.PI * 2 * i) / 12;
+    // Expand animation for inner ring
+    this.scene.tweens.add({
+      targets: innerRing,
+      scale: 1.2,
+      alpha: 0,
+      duration: duration,
+      ease: 'Cubic.easeOut',
+      onComplete: () => {
+        this.scene.tweens.add({
+          targets: innerRing,
+          alpha: 0,
+          duration: 200,
+          onComplete: () => {
+            if (innerRing && innerRing.scene) {
+              innerRing.destroy();
+            }
+          }
+        });
+      }
+    });
+
+    // Add radial burst effect with more rays
+    const rayCount = 16;
+    for (let i = 0; i < rayCount; i++) {
+      const angle = (Math.PI * 2 * i) / rayCount;
       const startX = this.player.x;
       const startY = this.player.y;
-      const endX = startX + Math.cos(angle) * radius;
-      const endY = startY + Math.sin(angle) * radius;
+      const midRadius = radius * 0.3;
+      const endRadius = radius * 1.3;
 
-      const ray = this.scene.add.line(
-        0, 0,
-        startX, startY,
-        startX, startY,
-        0xffd700,
-        0.6
-      );
-      ray.setLineWidth(3);
-      ray.setDepth(11);
+      // Create glowing particles along each ray
+      const particlesPerRay = 5;
+      for (let j = 0; j < particlesPerRay; j++) {
+        const delay = j * 40;
+        this.scene.time.delayedCall(delay, () => {
+          const distance = midRadius + (endRadius - midRadius) * (j / particlesPerRay);
+          const x = startX + Math.cos(angle) * distance;
+          const y = startY + Math.sin(angle) * distance;
+
+          const particle = this.scene.add.circle(x, y, 5, 0xffd700, 0.9);
+          particle.setDepth(11);
+          particle.setStrokeStyle(2, 0xffffff, 0.7);
+
+          this.scene.tweens.add({
+            targets: particle,
+            x: startX + Math.cos(angle) * endRadius * 1.2,
+            y: startY + Math.sin(angle) * endRadius * 1.2,
+            scale: 0.2,
+            alpha: 0,
+            duration: 500 - delay,
+            ease: 'Cubic.easeOut',
+            onComplete: () => particle.destroy()
+          });
+        });
+      }
+    }
+
+    // Add rotating blessing symbols
+    const symbolCount = 8;
+    for (let i = 0; i < symbolCount; i++) {
+      const angle = (Math.PI * 2 * i) / symbolCount;
+      const distance = radius * 0.8;
+      const x = this.player.x + Math.cos(angle) * distance;
+      const y = this.player.y + Math.sin(angle) * distance;
+
+      const symbol = this.scene.add.circle(x, y, 8, 0xffffff, 0.8);
+      symbol.setDepth(11);
+      symbol.setStrokeStyle(2, 0xffd700, 1);
 
       this.scene.tweens.add({
-        targets: ray,
-        scaleX: 1.5,
+        targets: symbol,
+        scale: 1.5,
         alpha: 0,
-        duration: 400,
+        duration: 600,
         ease: 'Cubic.easeOut',
-        onUpdate: () => {
-          const progress = ray.alpha;
-          const currentEndX = startX + (endX - startX) * (1 - progress);
-          const currentEndY = startY + (endY - startY) * (1 - progress);
-          ray.setTo(startX, startY, currentEndX, currentEndY);
-        },
-        onComplete: () => ray.destroy()
+        onComplete: () => symbol.destroy()
       });
     }
   }

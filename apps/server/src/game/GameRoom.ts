@@ -491,6 +491,62 @@ export class GameRoom {
           }
           break;
         }
+
+        case 'juhee_healing_circle': {
+          // Healing Circle (Skill A) - AOE heal for all players including Juhee
+          const healAmount = effect.data?.healAmount || 50;
+          const healRadius = effect.radius || 120;
+
+          // Heal all players within radius (including Juhee herself)
+          for (const player of this.serverPlayers.values()) {
+            const distance = Math.sqrt(
+              Math.pow(player.x - effect.x, 2) + Math.pow(player.y - effect.y, 2)
+            );
+
+            if (distance <= healRadius + 30) { // Player collision radius
+              const actualHealed = player.heal(healAmount);
+              ownerPlayer.addHealDone(actualHealed);
+              console.log(`💚 ${ownerPlayer.name}'s healing circle healed ${player.name} for ${actualHealed} HP`);
+            }
+          }
+
+          // Remove effect after application (instant effect, 500ms is just for animation)
+          skillsToRemove.push(effect.id);
+          break;
+        }
+
+        case 'juhee_blessing': {
+          // Blessing of Courage (Skill E) - AOE buff for all players
+          const atkBonus = effect.data?.atkBonus || 1.0;
+          const defBonus = effect.data?.defBonus || 0.5;
+          const atkSpeedBonus = effect.data?.atkSpeedBonus || 0.3;
+          const duration = effect.data?.duration || 15000;
+          const buffRadius = effect.radius || 150;
+
+          // Apply buff to all players within radius
+          for (const player of this.serverPlayers.values()) {
+            const distance = Math.sqrt(
+              Math.pow(player.x - effect.x, 2) + Math.pow(player.y - effect.y, 2)
+            );
+
+            if (distance <= buffRadius + 30) { // Player collision radius
+              player.addBuff({
+                type: 'juhee_blessing',
+                expiresAt: now + duration,
+                data: {
+                  atkBonus: atkBonus,
+                  defBonus: defBonus,
+                  atkSpeedBonus: atkSpeedBonus
+                }
+              });
+              console.log(`✨ ${ownerPlayer.name}'s blessing buffed ${player.name} (+${(atkBonus * 100).toFixed(0)}% ATK, +${(defBonus * 100).toFixed(0)}% DEF, +${(atkSpeedBonus * 100).toFixed(0)}% ATK SPD)`);
+            }
+          }
+
+          // Remove effect after application
+          skillsToRemove.push(effect.id);
+          break;
+        }
       }
 
       // Apply damage if hit detected

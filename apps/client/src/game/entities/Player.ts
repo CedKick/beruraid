@@ -418,14 +418,12 @@ export class Player {
       } else if (pointer.rightButtonDown()) {
         // Right click behavior depends on character
         if (this.characterId === 'juhee') {
-          // Juhee: Heal projectile
-          if (this.juheeSkills) {
-            const stats = this.statsManager.getStats();
-            const result = this.juheeSkills.useRightClick(stats.currentMana, pointer.worldX, pointer.worldY);
-            if (result.success && result.manaCost > 0) {
-              this.statsManager.useMana(result.manaCost);
-            }
-          }
+          // Juhee: Heal projectile - NOW with auto-attack system like ranged
+          this.isAutoAttacking = true;
+          this.attackType = 'ranged'; // Use ranged type for heal projectiles
+          this.autoAttackTarget = { x: pointer.worldX, y: pointer.worldY };
+
+          // In multiplayer, send first attack immediately
           if (this.isMultiplayer) {
             this.sendRightClickToServer(pointer.worldX, pointer.worldY);
           }
@@ -475,7 +473,13 @@ export class Player {
         const rangedCooldown = 1000;
         if (time - this.lastRangedAttackTime > rangedCooldown) {
           this.lastRangedAttackTime = time;
-          this.sendAttackToServer('ranged', this.autoAttackTarget.x, this.autoAttackTarget.y);
+
+          // For Juhee, send heal projectile; for others, send ranged attack
+          if (this.characterId === 'juhee') {
+            this.sendRightClickToServer(this.autoAttackTarget.x, this.autoAttackTarget.y);
+          } else {
+            this.sendAttackToServer('ranged', this.autoAttackTarget.x, this.autoAttackTarget.y);
+          }
         }
       }
       return;
@@ -493,7 +497,12 @@ export class Player {
       // FIXED: 1 projectile per second (1000ms cooldown)
       const rangedCooldown = 1000;
       if (time - this.lastRangedAttackTime > rangedCooldown) {
-        this.performRangedAttack(time);
+        // For Juhee, create heal projectile; for others, create ranged attack
+        if (this.characterId === 'juhee') {
+          this.performJuheeHealProjectile(time);
+        } else {
+          this.performRangedAttack(time);
+        }
       }
     }
   }
@@ -613,6 +622,26 @@ export class Player {
         projectile.destroy();
       }
     });
+  }
+
+  private performJuheeHealProjectile(time: number) {
+    // Juhee's heal projectile - 1 per second like ranged attacks
+    this.lastRangedAttackTime = time;
+
+    if (!this.autoAttackTarget || !this.juheeSkills) return;
+
+    // Use Juhee's skill system to create the heal projectile
+    const stats = this.statsManager.getStats();
+    const result = this.juheeSkills.useRightClick(
+      stats.currentMana,
+      this.autoAttackTarget.x,
+      this.autoAttackTarget.y
+    );
+
+    // Consume mana if there's a cost
+    if (result.success && result.manaCost > 0) {
+      this.statsManager.useMana(result.manaCost);
+    }
   }
 
   private updateManaRegen(_time: number, delta: number) {
