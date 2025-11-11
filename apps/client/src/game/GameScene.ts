@@ -505,17 +505,24 @@ export class GameScene extends Phaser.Scene {
     if (gameState.players) {
       for (const playerState of gameState.players) {
         if (playerState.socketId === socketService.getSocketId()) {
-          // Update our own player position from server (authoritative)
+          // CLIENT-SIDE PREDICTION RECONCILIATION
+          // Only correct position if there's a significant difference from server
           const playerSprite = this.player.getSprite();
-          playerSprite.setPosition(playerState.position.x, playerState.position.y);
+          const distanceX = Math.abs(playerSprite.x - playerState.position.x);
+          const distanceY = Math.abs(playerSprite.y - playerState.position.y);
+          const totalDistance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
 
-          // Update sprite texture based on direction
-          const textureKey = `${playerState.characterId}_${playerState.direction}`;
-          if (this.textures.exists(textureKey)) {
-            playerSprite.setTexture(textureKey);
+          // If we're too far from server position (> 50px), smoothly correct it
+          if (totalDistance > 50) {
+            // Lerp towards server position (smooth correction)
+            const lerpFactor = 0.2; // Adjust for smoothness (0.1 = very smooth, 0.5 = fast correction)
+            const newX = playerSprite.x + (playerState.position.x - playerSprite.x) * lerpFactor;
+            const newY = playerSprite.y + (playerState.position.y - playerSprite.y) * lerpFactor;
+            playerSprite.setPosition(newX, newY);
           }
+          // Otherwise, trust client prediction (no correction needed)
 
-          // Update dodging state
+          // Update dodging state from server
           if (playerState.isDodging) {
             playerSprite.setAlpha(0.5);
           } else {
@@ -853,7 +860,7 @@ export class GameScene extends Phaser.Scene {
       ultimate: Phaser.Input.Keyboard.JustDown(this.keys.R),
     };
 
-    // In multiplayer mode, send inputs to server instead of processing locally
+    // In multiplayer mode, send inputs to server AND apply movement locally (client-side prediction)
     if (this.isMultiplayerMode) {
       const socket = socketService.getSocket();
       if (socket) {
@@ -918,6 +925,44 @@ export class GameScene extends Phaser.Scene {
           if (gutsSkills) {
             gutsSkills.useUltimate(playerStats.currentMana, playerStats.attack);
           }
+        }
+      }
+
+      // CLIENT-SIDE PREDICTION: Apply movement locally for instant feedback
+      // The player will move immediately on the client, and the server will
+      // send authoritative position updates for reconciliation
+      const body = this.player.getSprite().body as Phaser.Physics.Arcade.Body;
+      let velocityX = 0;
+      let velocityY = 0;
+
+      if (movement.left) velocityX -= 300;
+      if (movement.right) velocityX += 300;
+      if (movement.up) velocityY -= 300;
+      if (movement.down) velocityY += 300;
+
+      // Normalize diagonal movement
+      if (velocityX !== 0 && velocityY !== 0) {
+        velocityX *= 0.707;
+        velocityY *= 0.707;
+      }
+
+      body.setVelocity(velocityX, velocityY);
+
+      // Update player sprite direction locally
+      if (velocityX !== 0 || velocityY !== 0) {
+        let newDirection: 'up' | 'down' | 'left' | 'right' = this.player.getDirection();
+
+        // Prioritize vertical movement for sprite direction
+        if (Math.abs(velocityY) > Math.abs(velocityX)) {
+          newDirection = velocityY < 0 ? 'up' : 'down';
+        } else if (velocityX !== 0) {
+          newDirection = velocityX < 0 ? 'left' : 'right';
+        }
+
+        // Update texture
+        const textureKey = `${this.gameConfig?.characterId}_${newDirection}`;
+        if (this.textures.exists(textureKey)) {
+          this.player.getSprite().setTexture(textureKey);
         }
       }
 
