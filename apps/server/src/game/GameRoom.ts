@@ -254,8 +254,9 @@ export class GameRoom {
     const serverPlayer = this.serverPlayers.get(socketId);
     if (!serverPlayer) return;
 
-    // Delta is handled in the update loop, but we need to pass something for immediate response
-    serverPlayer.handleMovement(input, 16); // ~60 FPS
+    // Just store the input - it will be applied in the update loop
+    // This makes movement frame-rate independent
+    serverPlayer.handleMovement(input);
   }
 
   /**

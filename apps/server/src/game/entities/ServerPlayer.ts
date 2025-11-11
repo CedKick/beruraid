@@ -84,6 +84,14 @@ export class ServerPlayer {
   private meleeAttackCooldown = 1000; // Base cooldown, will be modified by attack speed
   private rangedAttackCooldown = 1000;
 
+  // Current movement input (updated by client, applied in update loop)
+  private currentInput: { up: boolean; down: boolean; left: boolean; right: boolean } = {
+    up: false,
+    down: false,
+    left: false,
+    right: false
+  };
+
   constructor(socketId: string, name: string, characterId: string, x: number, y: number) {
     this.socketId = socketId;
     this.name = name;
@@ -117,6 +125,9 @@ export class ServerPlayer {
       this.isDodging = false;
     }
 
+    // Apply movement from current input
+    this.applyMovement(delta);
+
     // Mana regeneration
     const deltaSeconds = delta / 1000;
     this.regenerateMana(this.manaRegenRate * deltaSeconds);
@@ -125,26 +136,14 @@ export class ServerPlayer {
     this.updateProjectiles(time, deltaSeconds);
   }
 
-  private updateProjectiles(time: number, deltaSeconds: number): void {
-    // Remove expired projectiles
-    this.projectiles = this.projectiles.filter(p => time < p.expiresAt);
-
-    // Update projectile positions
-    for (const projectile of this.projectiles) {
-      projectile.x += projectile.velocityX * deltaSeconds;
-      projectile.y += projectile.velocityY * deltaSeconds;
-    }
-  }
-
-  // Handle movement input from client
-  handleMovement(input: { up: boolean; down: boolean; left: boolean; right: boolean }, delta: number): void {
+  private applyMovement(delta: number): void {
     let velocityX = 0;
     let velocityY = 0;
 
-    if (input.left) velocityX -= this.speed;
-    if (input.right) velocityX += this.speed;
-    if (input.up) velocityY -= this.speed;
-    if (input.down) velocityY += this.speed;
+    if (this.currentInput.left) velocityX -= this.speed;
+    if (this.currentInput.right) velocityX += this.speed;
+    if (this.currentInput.up) velocityY -= this.speed;
+    if (this.currentInput.down) velocityY += this.speed;
 
     // Normalize diagonal movement
     if (velocityX !== 0 && velocityY !== 0) {
@@ -172,6 +171,23 @@ export class ServerPlayer {
     // Clamp to world bounds (1600x1000)
     this.x = Math.max(0, Math.min(1600, this.x));
     this.y = Math.max(0, Math.min(1000, this.y));
+  }
+
+  private updateProjectiles(time: number, deltaSeconds: number): void {
+    // Remove expired projectiles
+    this.projectiles = this.projectiles.filter(p => time < p.expiresAt);
+
+    // Update projectile positions
+    for (const projectile of this.projectiles) {
+      projectile.x += projectile.velocityX * deltaSeconds;
+      projectile.y += projectile.velocityY * deltaSeconds;
+    }
+  }
+
+  // Handle movement input from client - just store it, don't apply it
+  // Movement is applied in update() loop to be frame-rate independent
+  handleMovement(input: { up: boolean; down: boolean; left: boolean; right: boolean }): void {
+    this.currentInput = { ...input };
   }
 
   // Handle dodge action
