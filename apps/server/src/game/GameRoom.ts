@@ -14,6 +14,7 @@ export class GameRoom {
   private hostId: string = '';
   private status: RoomStatus = 'waiting';
   private players: Map<string, PlayerState> = new Map();
+  private isPrivate: boolean = false;
 
   // Server-side game entities
   private serverPlayers: Map<string, ServerPlayer> = new Map();
@@ -30,10 +31,11 @@ export class GameRoom {
   private worldWidth = 1600;
   private worldHeight = 1000;
 
-  constructor(roomId: string, roomCode: string, maxPlayers: number = 6) {
+  constructor(roomId: string, roomCode: string, maxPlayers: number = 6, isPrivate: boolean = false) {
     this.id = roomId;
     this.code = roomCode;
     this.maxPlayers = maxPlayers;
+    this.isPrivate = isPrivate;
   }
 
   /**
@@ -630,5 +632,29 @@ export class GameRoom {
 
   public getHostId(): string {
     return this.hostId;
+  }
+
+  public getIsPrivate(): boolean {
+    return this.isPrivate;
+  }
+
+  /**
+   * Kick a player from the room (only host can kick)
+   */
+  public kickPlayer(hostSocketId: string, targetSocketId: string): boolean {
+    // Check if the requester is the host
+    if (!this.isHost(hostSocketId)) {
+      return false;
+    }
+
+    // Cannot kick yourself
+    const hostPlayer = this.players.get(this.hostId);
+    if (hostPlayer?.socketId === targetSocketId) {
+      return false;
+    }
+
+    // Find and remove the player
+    this.removePlayer(targetSocketId);
+    return true;
   }
 }

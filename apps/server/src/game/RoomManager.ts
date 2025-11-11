@@ -45,7 +45,7 @@ export class RoomManager {
       const roomId = this.generateRoomId();
       const roomCode = this.generateRoomCode();
 
-      const room = new GameRoom(roomId, roomCode, request.maxPlayers);
+      const room = new GameRoom(roomId, roomCode, request.maxPlayers, request.isPrivate || false);
 
       // Create initial player state
       const player: PlayerState = {
@@ -209,7 +209,25 @@ export class RoomManager {
       playerCount: room.getPlayerCount(),
       maxPlayers: room.getMaxPlayers(),
       status: room.getStatus(),
+      isPrivate: room.getIsPrivate(),
     }));
+  }
+
+  /**
+   * Get public rooms that are waiting
+   */
+  public getPublicWaitingRooms(): RoomInfo[] {
+    return Array.from(this.rooms.values())
+      .filter(room => !room.getIsPrivate() && room.getStatus() === 'waiting')
+      .map(room => ({
+        id: room.id,
+        code: room.getCode(),
+        hostName: room.getHostName(),
+        playerCount: room.getPlayerCount(),
+        maxPlayers: room.getMaxPlayers(),
+        status: room.getStatus(),
+        isPrivate: room.getIsPrivate(),
+      }));
   }
 
   /**

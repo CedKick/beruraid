@@ -16,7 +16,9 @@ export function LobbyScreen({ characterName, characterId, onStartGame }: LobbySc
   const [playerCount, setPlayerCount] = useState(2);
   const [roomCode, setRoomCode] = useState('');
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
+  const [isConfiguringRoom, setIsConfiguringRoom] = useState(false);
   const [isJoiningRoom, setIsJoiningRoom] = useState(false);
+  const [isBrowsingRooms, setIsBrowsingRooms] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState('');
   const [playersInRoom, setPlayersInRoom] = useState<PlayerState[]>([]);
@@ -24,6 +26,8 @@ export function LobbyScreen({ characterName, characterId, onStartGame }: LobbySc
   const [currentRoomCode, setCurrentRoomCode] = useState('');
   const [isHost, setIsHost] = useState(false);
   const [isPlayerReady, setIsPlayerReady] = useState(false);
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [publicRooms, setPublicRooms] = useState<any[]>([]);
 
   // Use refs to avoid unnecessary re-renders
   const currentRoomCodeRef = useRef(currentRoomCode);
@@ -66,6 +70,16 @@ export function LobbyScreen({ characterName, characterId, onStartGame }: LobbySc
         setError(data.message);
         setIsConnecting(false);
       });
+
+      socket.on('room:kicked', () => {
+        setError('You have been kicked from the room');
+        setIsCreatingRoom(false);
+        setPlayersInRoom([]);
+        setCurrentRoomCode('');
+        setCurrentRoomId('');
+        setIsHost(false);
+        setIsPlayerReady(false);
+      });
     }
 
     // Socket cleanup is handled in App.tsx when returning to menu
@@ -81,12 +95,14 @@ export function LobbyScreen({ characterName, characterId, onStartGame }: LobbySc
         playerName: characterName,
         characterId: characterId,
         maxPlayers: playerCount,
+        isPrivate: isPrivate,
       });
 
       if (response.success && response.roomCode && response.roomId) {
         setRoomCode(response.roomCode);
         setCurrentRoomCode(response.roomCode);
         setCurrentRoomId(response.roomId);
+        setIsConfiguringRoom(false);
         setIsCreatingRoom(true);
         setIsHost(true);
 
@@ -170,6 +186,7 @@ export function LobbyScreen({ characterName, characterId, onStartGame }: LobbySc
         setCurrentRoomCode(roomCode);
         setPlayersInRoom(response.players);
         setIsJoiningRoom(false);
+        setIsBrowsingRooms(false);
         setIsCreatingRoom(true); // Show the room view
         setIsHost(false);
 
@@ -184,6 +201,37 @@ export function LobbyScreen({ characterName, characterId, onStartGame }: LobbySc
     } finally {
       setIsConnecting(false);
     }
+  };
+
+  const handleBrowseRooms = async () => {
+    setIsBrowsingRooms(true);
+    setError('');
+
+    try {
+      const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000';
+      const response = await fetch(`${serverUrl}/api/rooms/public`);
+      const data = await response.json();
+      setPublicRooms(data.rooms || []);
+    } catch (err) {
+      setError('Failed to fetch public rooms');
+      console.error(err);
+    }
+  };
+
+  const handleJoinPublicRoom = async (code: string) => {
+    setRoomCode(code);
+    await handleJoinRoom();
+  };
+
+  const handleKickPlayer = (targetSocketId: string) => {
+    const socket = socketService.getSocket();
+    if (!socket || !isHost) return;
+
+    socket.emit('room:kick', { targetSocketId }, (response) => {
+      if (!response.success) {
+        setError(response.error || 'Failed to kick player');
+      }
+    });
   };
 
   if (mode === null) {
@@ -256,21 +304,85 @@ export function LobbyScreen({ characterName, characterId, onStartGame }: LobbySc
           <h1>Multiplayer Lobby</h1>
         </div>
 
-        {!isCreatingRoom && !isJoiningRoom ? (
+        {!isCreatingRoom && !isJoiningRoom && !isBrowsingRooms && !isConfiguringRoom ? (
           <div className="multiplayer-options">
-            <div className="option-card" onClick={handleCreateRoom}>
+            <div className="option-card" onClick={() => { setIsConfiguringRoom(true); setError(''); }}>
               <div className="option-icon">➕</div>
               <h2>Create Room</h2>
               <p>Start a new raid room and invite other hunters</p>
             </div>
 
+            <div className="option-card" onClick={handleBrowseRooms}>
+              <div className="option-icon">📋</div>
+              <h2>Browse Public Rooms</h2>
+              <p>Join an open raid room</p>
+            </div>
+
             <div className="option-card" onClick={() => setIsJoiningRoom(true)}>
               <div className="option-icon">🔍</div>
-              <h2>Join Room</h2>
+              <h2>Join by Code</h2>
               <p>Enter a room code to join an existing raid</p>
             </div>
           </div>
-        ) : isJoiningRoom ? (
+        ) : isBrowsingRooms ? (
+          <div className="browse-rooms-section">
+            <h2>Public Rooms</h2>
+            {publicRooms.length === 0 ? (
+              <p className="no-rooms">No public rooms available</p>
+            ) : (
+              <div className="rooms-list">
+                {publicRooms.map((room) => (
+                  <div key={room.id} className="room-item" onClick={() => handleJoinPublicRoom(room.code)}>
+                    <div className="room-info">
+                      <span className="room-code">{room.code}</span>
+                      <span className="room-host">Host: {room.hostName}</span>
+                      <span className="room-players">{room.playerCount}/{room.maxPlayers} players</span>
+                    </div>
+                    <button className="join-room-btn">Join</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <button className="secondary-btn" onClick={() => setIsBrowsingRooms(false)}>
+              Back
+            </button>
+          </div>
+        ) : isConfiguringRoom ? (
+          <div className="configure-room-section">
+            <h2>Configure Room</h2>
+            <div className="room-settings">
+              <div className="setting-item">
+                <label>Max Players</label>
+                <input
+                  type="number"
+                  min="2"
+                  max="6"
+                  value={playerCount}
+                  onChange={(e) => setPlayerCount(Math.min(6, Math.max(2, parseInt(e.target.value) || 2)))}
+                  className="player-count-input"
+                />
+              </div>
+              <div className="setting-item">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={isPrivate}
+                    onChange={(e) => setIsPrivate(e.target.checked)}
+                  />
+                  <span>Private Room (only joinable by code)</span>
+                </label>
+              </div>
+            </div>
+            <div className="button-group">
+              <button className="secondary-btn" onClick={() => setIsConfiguringRoom(false)}>
+                Cancel
+              </button>
+              <button className="start-raid-btn" onClick={handleCreateRoom} disabled={isConnecting}>
+                {isConnecting ? 'Creating...' : 'Create Room'}
+              </button>
+            </div>
+          </div>
+        ) : isJoiningRoom && !isCreatingRoom ? (
           <div className="join-room-section">
             <h2>Join a Room</h2>
             <div className="room-input-container">
@@ -315,6 +427,7 @@ export function LobbyScreen({ characterName, characterId, onStartGame }: LobbySc
               <div className="player-list">
                 {playersInRoom.map((player, index) => {
                   const isCurrentPlayer = player.socketId === socketService.getSocketId();
+                  const canKick = isHost && !isCurrentPlayer;
                   return (
                     <div key={player.socketId || index} className="player-item">
                       <span className="player-name">
@@ -325,6 +438,17 @@ export function LobbyScreen({ characterName, characterId, onStartGame }: LobbySc
                       <span className={`player-status ${(isCurrentPlayer ? isPlayerReady : player.isReady) ? 'ready' : 'not-ready'}`}>
                         {(isCurrentPlayer ? isPlayerReady : player.isReady) ? '✓ Ready' : '○ Not Ready'}
                       </span>
+                      {canKick && (
+                        <button
+                          className="kick-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleKickPlayer(player.socketId);
+                          }}
+                        >
+                          Kick
+                        </button>
+                      )}
                     </div>
                   );
                 })}

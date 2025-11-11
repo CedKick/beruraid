@@ -35,7 +35,7 @@ export interface SkillEffect {
   ownerId: string;
   ownerName: string;
   characterId: string;
-  skillType: 'skill1' | 'skill2' | 'ultimate';
+  skillType: 'skill1' | 'skill2' | 'ultimate' | 'rightclick';
   effectType:
     | 'fern_fire_aoe'        // Fern Skill A
     | 'fern_zoltraak'        // Fern Skill E
@@ -43,7 +43,12 @@ export interface SkillEffect {
     | 'stark_shield'         // Stark Skill E (buff)
     | 'guts_rage_aoe'        // Guts Skill A
     | 'guts_beast_aura'      // Guts Skill B (buff)
-    | 'guts_berserker_armor'; // Guts Ultimate (buff)
+    | 'guts_berserker_armor' // Guts Ultimate (buff)
+    | 'sung_barrage_strike'  // Sung Skill A
+    | 'sung_death_gamble'    // Sung Skill B
+    | 'juhee_healing_circle' // Juhee Skill A
+    | 'juhee_blessing'       // Juhee Skill E
+    | 'juhee_heal_projectile'; // Juhee Right-click heal
   x: number;
   y: number;
   radius?: number;
@@ -57,7 +62,17 @@ export interface SkillEffect {
 }
 
 export interface PlayerBuff {
-  type: 'stark_shield' | 'guts_beast' | 'guts_berserker';
+  type:
+    | 'stark_shield'
+    | 'guts_beast'
+    | 'guts_berserker'
+    | 'sung_barrage_crit'          // Sung Skill A crit stacks
+    | 'sung_death_gamble_blue'     // Sung Skill B blue circle
+    | 'sung_death_gamble_red'      // Sung Skill B red circle
+    | 'sung_desperate_resolve'     // Sung passive
+    | 'juhee_blessing'             // Juhee Skill E buff
+    | 'juhee_panic_freeze'         // Juhee panic freeze
+    | 'juhee_panic_reverse';       // Juhee panic reverse controls
   expiresAt: number;
   data?: any;
 }

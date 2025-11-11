@@ -9,7 +9,8 @@ export interface ClientToServerEvents {
   'room:join': (data: JoinRoomRequest, callback: (response: JoinRoomResponse) => void) => void;
   'room:leave': () => void;
   'room:start': () => void;
-  
+  'room:kick': (data: { targetSocketId: string }, callback: (response: { success: boolean; error?: string }) => void) => void;
+
   // Game actions
   'game:input': (input: PlayerInput) => void;
   'game:movement': (input: { up: boolean; down: boolean; left: boolean; right: boolean }) => void;
@@ -17,7 +18,7 @@ export interface ClientToServerEvents {
   'game:attack': (data: { type: 'melee' | 'ranged'; targetX: number; targetY: number }) => void;
   'game:skill': (data: { skillId: number; targetX?: number; targetY?: number }) => void;
   'game:damage': (damage: DamageEvent) => void;
-  
+
   // Player status
   'player:ready': () => void;
   'player:update': (state: Partial<PlayerState>) => void;
@@ -30,6 +31,7 @@ export interface ServerToClientEvents {
   'room:joined': (data: { roomId: string; players: PlayerState[] }) => void;
   'room:playerJoined': (player: PlayerState) => void;
   'room:playerLeft': (data: { playerId: string }) => void;
+  'room:kicked': () => void;
   'room:starting': (data: { countdown: number }) => void;
   'room:started': () => void;
   

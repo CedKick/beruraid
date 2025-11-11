@@ -82,6 +82,12 @@ app.get('/api/stats', (req, res) => {
   });
 });
 
+app.get('/api/rooms/public', (req, res) => {
+  res.json({
+    rooms: roomManager.getPublicWaitingRooms()
+  });
+});
+
 // Socket.io Events
 io.on('connection', (socket) => {
   console.log(`✅ Client connected: ${socket.id}`);
@@ -191,6 +197,31 @@ io.on('connection', (socket) => {
 
         console.log(`✅ Player ${socket.id} is ready in room ${room.id}`);
       }
+    }
+  });
+
+  // Room: Kick player
+  socket.on('room:kick', (data: { targetSocketId: string }, callback) => {
+    const room = roomManager.getRoomBySocketId(socket.id);
+    if (room) {
+      const success = room.kickPlayer(socket.id, data.targetSocketId);
+      if (success) {
+        // Remove player from room mapping
+        roomManager.leaveRoom(data.targetSocketId);
+
+        // Notify the kicked player
+        io.to(data.targetSocketId).emit('room:kicked');
+
+        // Notify others in the room
+        io.to(room.id).emit('room:playerLeft', { playerId: data.targetSocketId });
+
+        console.log(`🚫 Player ${data.targetSocketId} kicked from room ${room.id}`);
+        callback({ success: true });
+      } else {
+        callback({ success: false, error: 'Cannot kick player' });
+      }
+    } else {
+      callback({ success: false, error: 'Room not found' });
     }
   });
 

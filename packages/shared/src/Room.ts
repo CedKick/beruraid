@@ -29,12 +29,14 @@ export interface RoomInfo {
   playerCount: number;
   maxPlayers: number;
   status: RoomStatus;
+  isPrivate?: boolean;
 }
 
 export interface CreateRoomRequest {
   playerName: string;
   characterId: string;
   maxPlayers: number;
+  isPrivate?: boolean;
 }
 
 export interface CreateRoomResponse {
