@@ -481,12 +481,16 @@ export class GameRoom {
           const bossAmount = effect.data?.bossAmount || 30;
           const projectileRadius = effect.radius || 20;
 
+          console.log(`🔍 [HEAL_PROJ] Checking collision for projectile at (${effect.x.toFixed(1)}, ${effect.y.toFixed(1)})`);
+
           // Check collision with players first
           let hitApplied = false;
           for (const player of this.serverPlayers.values()) {
             const distance = Math.sqrt(
               Math.pow(player.x - effect.x, 2) + Math.pow(player.y - effect.y, 2)
             );
+
+            console.log(`🔍 [HEAL_PROJ] Distance to ${player.name}: ${distance.toFixed(1)} (threshold: ${projectileRadius + 30})`);
 
             if (distance <= projectileRadius + 30) { // Player collision radius
               player.heal(healAmount);
@@ -503,6 +507,8 @@ export class GameRoom {
             const distanceToBoss = Math.sqrt(
               Math.pow(bossState.x - effect.x, 2) + Math.pow(bossState.y - effect.y, 2)
             );
+
+            console.log(`🔍 [HEAL_PROJ] Distance to BOSS: ${distanceToBoss.toFixed(1)} (threshold: ${projectileRadius + bossRadius})`);
 
             if (distanceToBoss <= projectileRadius + bossRadius) {
               const damageResult = ownerPlayer.calculateDamage(bossAmount, bossState.defense);
