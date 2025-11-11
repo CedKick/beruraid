@@ -282,9 +282,13 @@ io.on('connection', (socket) => {
 
   // Game: Right-click (for Juhee heal projectile)
   socket.on('game:rightclick', (data) => {
+    console.log(`🖱️ [SERVER] Received game:rightclick from ${socket.id} - target: (${data.targetX}, ${data.targetY})`);
     const room = roomManager.getRoomBySocketId(socket.id);
     if (room) {
+      console.log(`✅ [SERVER] Room found, calling handlePlayerRightClick`);
       room.handlePlayerRightClick(socket.id, data.targetX, data.targetY);
+    } else {
+      console.log(`❌ [SERVER] No room found for socket ${socket.id}`);
     }
   });
 
