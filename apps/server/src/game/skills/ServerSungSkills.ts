@@ -116,10 +116,11 @@ export class ServerSungSkills {
     };
   }
 
-  useSkill2(currentMana: number, time: number): {
+  useSkill2(currentMana: number, playerX: number, playerY: number, time: number): {
     success: boolean;
     manaCost: number;
     buff?: PlayerBuff;
+    effect?: SkillEffect;
     isBlue: boolean;
   } {
     if (this.skill2Cooldown > 0 || currentMana < this.skill2ManaCost) {
@@ -143,10 +144,30 @@ export class ServerSungSkills {
       }
     };
 
+    // Create visual effect
+    const effect: SkillEffect = {
+      id: `${this.ownerId}_sung_death_gamble_${this.skillEffectCounter++}`,
+      ownerId: this.ownerId,
+      ownerName: this.ownerName,
+      characterId: 'sung',
+      skillType: 'skill2',
+      effectType: 'sung_death_gamble',
+      x: playerX,
+      y: playerY,
+      radius: 80,
+      createdAt: time,
+      expiresAt: time + this.skill2Duration, // 5 seconds
+      damage: 0,
+      data: {
+        isBlue: isBlue
+      }
+    };
+
     return {
       success: true,
       manaCost: this.skill2ManaCost,
       buff: buff,
+      effect: effect,
       isBlue: isBlue
     };
   }

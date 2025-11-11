@@ -33,6 +33,9 @@ export interface PlayerState {
   isAlive: boolean;
   isReady: boolean;
   lastUpdateTime: number;
+  skill1Cooldown?: number; // 0-1 (percentage)
+  skill2Cooldown?: number; // 0-1 (percentage)
+  ultimateCooldown?: number; // 0-1 (percentage)
 }
 
 export interface PlayerInput {

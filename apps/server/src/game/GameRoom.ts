@@ -158,12 +158,21 @@ export class GameRoom {
     // Update skill effects (remove expired)
     this.skillEffects = this.skillEffects.filter(effect => now < effect.expiresAt);
 
-    // Update moving skill effects (like Fern's Zoltraak)
+    // Update moving skill effects (like Fern's Zoltraak and Juhee heal projectiles)
     for (const effect of this.skillEffects) {
       if (effect.velocityX !== undefined && effect.velocityY !== undefined) {
         const deltaSeconds = deltaTime / 1000;
         effect.x += effect.velocityX * deltaSeconds;
         effect.y += effect.velocityY * deltaSeconds;
+      }
+
+      // Update position of player-following effects (like Sung's Death Gamble)
+      if (effect.effectType === 'sung_death_gamble') {
+        const owner = this.serverPlayers.get(effect.ownerId);
+        if (owner) {
+          effect.x = owner.x;
+          effect.y = owner.y;
+        }
       }
     }
 
@@ -200,6 +209,7 @@ export class GameRoom {
     const playerStates: PlayerState[] = Array.from(this.serverPlayers.values()).map(sp => {
       const state = sp.getState();
       const combatStats = sp.getCombatStats();
+      const cooldowns = sp.getSkillCooldowns();
       // Find the original player state to get isReady
       const originalPlayer = Array.from(this.players.values()).find(p => p.socketId === state.socketId);
       return {
@@ -214,6 +224,9 @@ export class GameRoom {
         isAlive: state.isAlive,
         isReady: originalPlayer?.isReady || false,
         lastUpdateTime: Date.now(),
+        skill1Cooldown: cooldowns.skill1 || 0,
+        skill2Cooldown: cooldowns.skill2 || 0,
+        ultimateCooldown: cooldowns.ultimate || 0,
         dps: combatStats.dps,
         hps: combatStats.hps,
         totalDamage: combatStats.totalDamage,

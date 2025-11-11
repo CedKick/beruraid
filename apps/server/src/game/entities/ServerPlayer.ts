@@ -556,7 +556,7 @@ export class ServerPlayer {
     } else if (this.gutsSkills) {
       return this.gutsSkills.useSkill2(this.stats.currentMana, time);
     } else if (this.sungSkills) {
-      return this.sungSkills.useSkill2(this.stats.currentMana, time);
+      return this.sungSkills.useSkill2(this.stats.currentMana, this.x, this.y, time);
     } else if (this.juheeSkills) {
       return this.juheeSkills.useSkill2(this.stats.currentMana, this.x, this.y, time);
     }
@@ -615,6 +615,10 @@ export class ServerPlayer {
       return this.starkSkills.getCooldowns();
     } else if (this.gutsSkills) {
       return this.gutsSkills.getCooldowns();
+    } else if (this.sungSkills) {
+      return this.sungSkills.getCooldowns();
+    } else if (this.juheeSkills) {
+      return this.juheeSkills.getCooldowns();
     }
     return {};
   }

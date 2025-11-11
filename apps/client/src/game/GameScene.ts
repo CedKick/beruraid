@@ -777,6 +777,30 @@ export class GameScene extends Phaser.Scene {
             (existing as any).setPosition?.(effect.x, effect.y);
             break;
           }
+
+          case 'sung_barrage_strike': {
+            // Static AOE effect, just update alpha
+            (existing as Phaser.GameObjects.Arc).setAlpha(1 - progress);
+            break;
+          }
+
+          case 'sung_death_gamble': {
+            // Static AOE circle (follows player in server, we just update alpha here)
+            (existing as Phaser.GameObjects.Arc).setAlpha(0.4 - progress * 0.1);
+            break;
+          }
+
+          case 'juhee_healing_circle': {
+            // Static heal AOE
+            (existing as Phaser.GameObjects.Arc).setAlpha(1 - progress);
+            break;
+          }
+
+          case 'juhee_blessing': {
+            // Static blessing AOE
+            (existing as Phaser.GameObjects.Arc).setAlpha(1 - progress);
+            break;
+          }
         }
       } else {
         // Create new skill effect visual
@@ -841,6 +865,45 @@ export class GameScene extends Phaser.Scene {
             const container = this.add.container(effect.x, effect.y, [sparkle, healCircle]);
             container.setDepth(90);
             visual = container;
+            break;
+          }
+
+          case 'sung_barrage_strike': {
+            // Purple dagger strike AOE
+            const circle = this.add.circle(effect.x, effect.y, effect.radius || 40, 0x8b00ff, 0.6);
+            circle.setStrokeStyle(4, 0xda70d6, 1);
+            circle.setDepth(90);
+            visual = circle;
+            break;
+          }
+
+          case 'sung_death_gamble': {
+            // Blue or Red circle (based on isBlue)
+            const isBlue = effect.data?.isBlue || false;
+            const color = isBlue ? 0x00bfff : 0xff0000;
+            const glowColor = isBlue ? 0x87ceeb : 0xff6347;
+            const circle = this.add.circle(effect.x, effect.y, effect.radius || 80, color, 0.4);
+            circle.setStrokeStyle(5, glowColor, 0.9);
+            circle.setDepth(90);
+            visual = circle;
+            break;
+          }
+
+          case 'juhee_healing_circle': {
+            // Green healing circle
+            const healCircle = this.add.circle(effect.x, effect.y, effect.radius || 120, 0x00ff88, 0.45);
+            healCircle.setStrokeStyle(4, 0x00ff00, 1);
+            healCircle.setDepth(90);
+            visual = healCircle;
+            break;
+          }
+
+          case 'juhee_blessing': {
+            // Golden blessing circle
+            const blessCircle = this.add.circle(effect.x, effect.y, effect.radius || 150, 0xffd700, 0.4);
+            blessCircle.setStrokeStyle(5, 0xffaa00, 1);
+            blessCircle.setDepth(90);
+            visual = blessCircle;
             break;
           }
         }
@@ -1821,9 +1884,9 @@ export class GameScene extends Phaser.Scene {
       bossNextBarMaxHp: serverState.boss.nextBarMaxHp,
       bossTotalDamage: serverState.boss.totalDamageDealt || 0,
       bossBarMultiplier: serverState.boss.barsDefeated + 1,
-      skill1Cooldown: 0, // TODO: Get from server
-      skill2Cooldown: 0,
-      ultimateCooldown: 0,
+      skill1Cooldown: ourPlayer.skill1Cooldown || 0,
+      skill2Cooldown: ourPlayer.skill2Cooldown || 0,
+      ultimateCooldown: ourPlayer.ultimateCooldown || 0,
       isDodging: ourPlayer.isDodging,
       remainingTime: remainingTime,
       remainingTimeSeconds: remainingSeconds,
