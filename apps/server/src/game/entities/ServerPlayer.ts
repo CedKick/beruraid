@@ -3,6 +3,21 @@
  * Authoritative player state and combat logic
  */
 
+export interface Projectile {
+  id: string;
+  ownerId: string;
+  type: 'melee' | 'ranged';
+  x: number;
+  y: number;
+  velocityX: number;
+  velocityY: number;
+  damage: number;
+  createdAt: number;
+  expiresAt: number;
+  radius: number;
+  angle?: number; // For melee slash rotation
+}
+
 export interface PlayerStats {
   level: number;
   experience: number;
@@ -59,6 +74,16 @@ export class ServerPlayer {
   // Alive state
   private isAlive = true;
 
+  // Projectiles
+  private projectiles: Projectile[] = [];
+  private projectileIdCounter = 0;
+
+  // Attack cooldowns
+  private lastMeleeAttackTime = 0;
+  private lastRangedAttackTime = 0;
+  private meleeAttackCooldown = 1000; // Base cooldown, will be modified by attack speed
+  private rangedAttackCooldown = 1000;
+
   constructor(socketId: string, name: string, characterId: string, x: number, y: number) {
     this.socketId = socketId;
     this.name = name;
@@ -95,6 +120,20 @@ export class ServerPlayer {
     // Mana regeneration
     const deltaSeconds = delta / 1000;
     this.regenerateMana(this.manaRegenRate * deltaSeconds);
+
+    // Update projectiles
+    this.updateProjectiles(time, deltaSeconds);
+  }
+
+  private updateProjectiles(time: number, deltaSeconds: number): void {
+    // Remove expired projectiles
+    this.projectiles = this.projectiles.filter(p => time < p.expiresAt);
+
+    // Update projectile positions
+    for (const projectile of this.projectiles) {
+      projectile.x += projectile.velocityX * deltaSeconds;
+      projectile.y += projectile.velocityY * deltaSeconds;
+    }
   }
 
   // Handle movement input from client
@@ -130,9 +169,9 @@ export class ServerPlayer {
     this.x += velocityX * deltaSeconds;
     this.y += velocityY * deltaSeconds;
 
-    // Clamp to world bounds (assuming 1920x1080)
-    this.x = Math.max(0, Math.min(1920, this.x));
-    this.y = Math.max(0, Math.min(1080, this.y));
+    // Clamp to world bounds (1600x1000)
+    this.x = Math.max(0, Math.min(1600, this.x));
+    this.y = Math.max(0, Math.min(1000, this.y));
   }
 
   // Handle dodge action
@@ -172,6 +211,80 @@ export class ServerPlayer {
   // Regenerate mana
   private regenerateMana(amount: number): void {
     this.stats.currentMana = Math.min(this.stats.maxMana, this.stats.currentMana + amount);
+  }
+
+  // Create melee attack
+  createMeleeAttack(time: number, targetX: number, targetY: number): Projectile | null {
+    const cooldown = this.meleeAttackCooldown / this.stats.attackSpeed;
+    if (time - this.lastMeleeAttackTime < cooldown) {
+      return null;
+    }
+
+    this.lastMeleeAttackTime = time;
+
+    const angle = Math.atan2(targetY - this.y, targetX - this.x);
+    const distance = 40;
+
+    const projectile: Projectile = {
+      id: `${this.socketId}_melee_${this.projectileIdCounter++}`,
+      ownerId: this.socketId,
+      type: 'melee',
+      x: this.x + Math.cos(angle) * distance,
+      y: this.y + Math.sin(angle) * distance,
+      velocityX: 0,
+      velocityY: 0,
+      damage: 10,
+      createdAt: time,
+      expiresAt: time + 100, // Short-lived (100ms)
+      radius: 25, // Melee range
+      angle: angle
+    };
+
+    this.projectiles.push(projectile);
+    return projectile;
+  }
+
+  // Create ranged projectile
+  createRangedAttack(time: number, targetX: number, targetY: number): Projectile | null {
+    if (time - this.lastRangedAttackTime < this.rangedAttackCooldown) {
+      return null;
+    }
+
+    this.lastRangedAttackTime = time;
+
+    const angle = Math.atan2(targetY - this.y, targetX - this.x);
+    const speed = 800;
+
+    const projectile: Projectile = {
+      id: `${this.socketId}_ranged_${this.projectileIdCounter++}`,
+      ownerId: this.socketId,
+      type: 'ranged',
+      x: this.x,
+      y: this.y,
+      velocityX: Math.cos(angle) * speed,
+      velocityY: Math.sin(angle) * speed,
+      damage: 10,
+      createdAt: time,
+      expiresAt: time + 3000, // 3 seconds
+      radius: 8,
+      angle: angle
+    };
+
+    this.projectiles.push(projectile);
+    return projectile;
+  }
+
+  // Get all projectiles
+  getProjectiles(): Projectile[] {
+    return [...this.projectiles];
+  }
+
+  // Remove a specific projectile (used when it hits something)
+  removeProjectile(projectileId: string): void {
+    const index = this.projectiles.findIndex(p => p.id === projectileId);
+    if (index !== -1) {
+      this.projectiles.splice(index, 1);
+    }
   }
 
   // Calculate damage dealt to target

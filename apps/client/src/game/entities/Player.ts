@@ -3,6 +3,7 @@ import { StatsManager } from '../systems/PlayerStats';
 import { FernSkills } from '../skills/FernSkills';
 import { StarkSkills } from '../skills/StarkSkills';
 import { GutsSkills } from '../skills/GutsSkills';
+import { socketService } from '../../networking/SocketService';
 
 export class Player {
   private scene: Phaser.Scene;
@@ -15,6 +16,7 @@ export class Player {
   private dodgeDuration = 500; // 0.5 seconds
   private dodgeCooldown = 2000;
   private lastDodgeTime = 0;
+  private isMultiplayer = false;
 
   // Character-specific skills
   private fernSkills: FernSkills | null = null;
@@ -81,6 +83,10 @@ export class Player {
     } else if (characterId === 'guts') {
       this.gutsSkills = new GutsSkills(scene, this.sprite);
     }
+  }
+
+  setMultiplayerMode(isMultiplayer: boolean) {
+    this.isMultiplayer = isMultiplayer;
   }
 
   update(
@@ -340,11 +346,21 @@ export class Player {
         this.isAutoAttacking = true;
         this.attackType = 'melee';
         this.autoAttackTarget = { x: pointer.worldX, y: pointer.worldY };
+
+        // In multiplayer, send first attack immediately
+        if (this.isMultiplayer) {
+          this.sendAttackToServer('melee', pointer.worldX, pointer.worldY);
+        }
       } else if (pointer.rightButtonDown()) {
         // Right click - Ranged attack
         this.isAutoAttacking = true;
         this.attackType = 'ranged';
         this.autoAttackTarget = { x: pointer.worldX, y: pointer.worldY };
+
+        // In multiplayer, send first attack immediately
+        if (this.isMultiplayer) {
+          this.sendAttackToServer('ranged', pointer.worldX, pointer.worldY);
+        }
       }
     });
 
@@ -366,6 +382,27 @@ export class Player {
   private updateAutoAttack(time: number) {
     if (!this.isAutoAttacking || !this.autoAttackTarget) return;
 
+    // In multiplayer mode, send attacks to server instead of creating locally
+    if (this.isMultiplayer) {
+      const stats = this.statsManager.getStats();
+
+      if (this.attackType === 'melee') {
+        const attackCooldown = 1000 / stats.attackSpeed;
+        if (time - this.lastMeleeAttackTime > attackCooldown) {
+          this.lastMeleeAttackTime = time;
+          this.sendAttackToServer('melee', this.autoAttackTarget.x, this.autoAttackTarget.y);
+        }
+      } else if (this.attackType === 'ranged') {
+        const rangedCooldown = 1000;
+        if (time - this.lastRangedAttackTime > rangedCooldown) {
+          this.lastRangedAttackTime = time;
+          this.sendAttackToServer('ranged', this.autoAttackTarget.x, this.autoAttackTarget.y);
+        }
+      }
+      return;
+    }
+
+    // Solo mode - create projectiles locally
     const stats = this.statsManager.getStats();
 
     if (this.attackType === 'melee') {
@@ -380,6 +417,17 @@ export class Player {
         this.performRangedAttack(time);
       }
     }
+  }
+
+  private sendAttackToServer(type: 'melee' | 'ranged', targetX: number, targetY: number) {
+    const socket = socketService.getSocket();
+    if (!socket) return;
+
+    socket.emit('game:attack', {
+      type,
+      targetX,
+      targetY
+    });
   }
 
   private performMeleeAttack(time: number) {

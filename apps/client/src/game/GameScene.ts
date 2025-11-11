@@ -43,6 +43,7 @@ export class GameScene extends Phaser.Scene {
   private isMultiplayerMode = false;
   private serverGameState: any = null;
   private serverBossAttacks: Map<string, Phaser.GameObjects.GameObject> = new Map();
+  private serverProjectiles: Map<string, Phaser.GameObjects.GameObject> = new Map();
 
   constructor() {
     super({ key: 'GameScene' });
@@ -213,6 +214,9 @@ export class GameScene extends Phaser.Scene {
     console.log('🎮 Setting up multiplayer...');
     this.isMultiplayerMode = true;
 
+    // Enable multiplayer mode on player
+    this.player.setMultiplayerMode(true);
+
     // Listen for game state updates from server (60 FPS)
     socket.on('game:stateUpdate', (gameState: any) => {
       this.serverGameState = gameState;
@@ -266,7 +270,7 @@ export class GameScene extends Phaser.Scene {
         playerState.position.y,
         `${playerState.characterId}_down`
       );
-      sprite.setScale(2);
+      sprite.setScale(0.35); // Same scale as local player
       sprite.setDepth(10);
 
       // Create name text above player
@@ -442,6 +446,11 @@ export class GameScene extends Phaser.Scene {
   private renderFromServerState(gameState: any) {
     if (!gameState) return;
 
+    // Render projectiles from server state
+    if (gameState.projectiles) {
+      this.renderProjectiles(gameState.projectiles);
+    }
+
     // Update boss from server state
     if (gameState.boss && this.boss) {
       const bossSprite = this.boss.getSprite();
@@ -602,6 +611,63 @@ export class GameScene extends Phaser.Scene {
 
       if (visual) {
         this.serverBossAttacks.set(attack.id, visual);
+      }
+    }
+  }
+
+  private renderProjectiles(projectiles: any[]) {
+    // Track which projectiles are in the server state
+    const serverProjectileIds = new Set(projectiles.map((p: any) => p.id));
+
+    // Remove projectiles that no longer exist on server
+    for (const [projectileId, projectileObj] of this.serverProjectiles.entries()) {
+      if (!serverProjectileIds.has(projectileId)) {
+        projectileObj.destroy();
+        this.serverProjectiles.delete(projectileId);
+      }
+    }
+
+    // Create or update projectiles from server
+    for (const projectile of projectiles) {
+      const existing = this.serverProjectiles.get(projectile.id);
+
+      if (existing) {
+        // Update existing projectile position
+        (existing as any).setPosition?.(projectile.x, projectile.y);
+      } else {
+        // Create new projectile visual
+        let visual: Phaser.GameObjects.GameObject | null = null;
+
+        if (projectile.type === 'melee') {
+          // Melee slash
+          const slash = this.add.rectangle(
+            projectile.x,
+            projectile.y,
+            50,
+            10,
+            0xffffff,
+            0.8
+          );
+          slash.setRotation(projectile.angle || 0);
+          slash.setDepth(100);
+          visual = slash;
+        } else if (projectile.type === 'ranged') {
+          // Ranged projectile
+          const circle = this.add.circle(
+            projectile.x,
+            projectile.y,
+            projectile.radius,
+            0x00ffff,
+            1
+          );
+          circle.setStrokeStyle(2, 0xffffff);
+          circle.setDepth(100);
+          visual = circle;
+        }
+
+        if (visual) {
+          this.serverProjectiles.set(projectile.id, visual);
+        }
       }
     }
   }

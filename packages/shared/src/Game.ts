@@ -15,6 +15,21 @@ export interface BossAttack {
   expiresAt: number;
 }
 
+export interface Projectile {
+  id: string;
+  ownerId: string;
+  type: 'melee' | 'ranged';
+  x: number;
+  y: number;
+  velocityX: number;
+  velocityY: number;
+  damage: number;
+  createdAt: number;
+  expiresAt: number;
+  radius: number;
+  angle?: number;
+}
+
 export interface BossState {
   hp: number;
   maxHp: number;
@@ -36,6 +51,7 @@ export interface GameState {
   roomId: string;
   players: PlayerState[];
   boss: BossState;
+  projectiles: Projectile[];
   startTime: number;
   elapsedTime: number;
   remainingTime: number;

@@ -23,9 +23,9 @@ export class GameRoom {
   private startTime: number = 0;
   private lastUpdateTime: number = 0;
 
-  // World bounds
-  private worldWidth = 1920;
-  private worldHeight = 1080;
+  // World bounds (match client game canvas size)
+  private worldWidth = 1600;
+  private worldHeight = 1000;
 
   constructor(roomId: string, roomCode: string, maxPlayers: number = 6) {
     this.id = roomId;
@@ -147,6 +147,9 @@ export class GameRoom {
     // Update boss
     this.serverBoss.update(now, deltaTime, playerPositions);
 
+    // Check projectile-boss collisions
+    this.checkProjectileCollisions();
+
     // Check victory condition (boss defeated)
     if (this.serverBoss.isDead()) {
       this.onBossDefeated();
@@ -193,6 +196,10 @@ export class GameRoom {
       };
     });
 
+    // Collect all projectiles from all players
+    const allProjectiles = Array.from(this.serverPlayers.values())
+      .flatMap(player => player.getProjectiles());
+
     return {
       roomId: this.id,
       players: playerStates,
@@ -209,6 +216,7 @@ export class GameRoom {
         velocityX: bossState.velocityX,
         velocityY: bossState.velocityY
       },
+      projectiles: allProjectiles,
       startTime: this.startTime,
       elapsedTime: Date.now() - this.startTime,
       remainingTime: Math.max(0, 180000 - (Date.now() - this.startTime)),
@@ -264,7 +272,7 @@ export class GameRoom {
   }
 
   /**
-   * Handle player attack
+   * Handle player attack - creates projectile
    */
   public handlePlayerAttack(
     socketId: string,
@@ -273,17 +281,60 @@ export class GameRoom {
     const serverPlayer = this.serverPlayers.get(socketId);
     if (!serverPlayer || !this.serverBoss) return;
 
-    // Calculate damage
-    const baseDamage = 10;
-    const damageResult = serverPlayer.calculateDamage(baseDamage, this.serverBoss.getState().defense);
+    const now = Date.now();
 
-    // Apply damage to boss
-    const result = this.serverBoss.takeDamage(damageResult.damage);
+    // Create projectile based on attack type
+    let projectile;
+    if (attackData.type === 'melee') {
+      projectile = serverPlayer.createMeleeAttack(now, attackData.targetX, attackData.targetY);
+    } else {
+      projectile = serverPlayer.createRangedAttack(now, attackData.targetX, attackData.targetY);
+    }
 
-    console.log(`⚔️ Player ${serverPlayer.name} dealt ${damageResult.damage.toFixed(1)} damage to boss (crit: ${damageResult.isCrit})`);
+    if (projectile) {
+      console.log(`🎯 Player ${serverPlayer.name} created ${attackData.type} projectile`);
+    }
+  }
 
-    if (result.barDefeated) {
-      console.log(`💥 Boss bar defeated! New bar HP: ${result.newBarMaxHp}`);
+  /**
+   * Check all projectile-boss collisions
+   */
+  private checkProjectileCollisions(): void {
+    if (!this.serverBoss) return;
+
+    const bossState = this.serverBoss.getState();
+    const bossRadius = 50; // Boss collision radius
+
+    for (const serverPlayer of this.serverPlayers.values()) {
+      const projectiles = serverPlayer.getProjectiles();
+
+      for (const projectile of projectiles) {
+        // Check distance between projectile and boss
+        const dx = projectile.x - bossState.x;
+        const dy = projectile.y - bossState.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        // Collision detected
+        if (distance <= projectile.radius + bossRadius) {
+          // Calculate damage
+          const damageResult = serverPlayer.calculateDamage(
+            projectile.damage,
+            bossState.defense
+          );
+
+          // Apply damage to boss
+          const result = this.serverBoss.takeDamage(damageResult.damage);
+
+          console.log(`💥 Projectile hit! ${serverPlayer.name} dealt ${damageResult.damage.toFixed(1)} damage (crit: ${damageResult.isCrit})`);
+
+          if (result.barDefeated) {
+            console.log(`🔥 Boss bar defeated! Rage count: ${result.newRageCount}`);
+          }
+
+          // Remove projectile after hit
+          serverPlayer.removeProjectile(projectile.id);
+        }
+      }
     }
   }
 
