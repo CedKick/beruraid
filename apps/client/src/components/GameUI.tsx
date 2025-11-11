@@ -168,7 +168,7 @@ export function GameUI({ gameScene }: GameUIProps) {
               style={{ width: `${playerHpPercent}%` }}
             />
             <div className="hp-text">
-              {gameState.playerHp} / {gameState.playerMaxHp}
+              {Math.floor(gameState.playerHp)} / {Math.floor(gameState.playerMaxHp)}
             </div>
           </div>
         </div>

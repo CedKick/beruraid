@@ -720,26 +720,71 @@ export class GameScene extends Phaser.Scene {
     if (this.isMultiplayerMode) {
       const socket = socketService.getSocket();
       if (socket) {
-        // Send movement input
-        if (movement.up || movement.down || movement.left || movement.right) {
-          socket.emit('game:movement', movement);
-        }
+        // ALWAYS send movement input, even when no keys pressed (to stop movement)
+        socket.emit('game:movement', movement);
 
         // Send dodge action
         if (actions.dodge) {
           socket.emit('game:dodge');
         }
 
-        // Send skill actions
+        // Send skill actions and create local visual effects
+        const playerStats = this.player.getStats();
+        const mousePos = this.input.activePointer;
+
         if (actions.skill1) {
-          socket.emit('game:skill', { skillId: 1 });
+          socket.emit('game:skill', { skillId: 1, mouseX: mousePos.worldX, mouseY: mousePos.worldY });
+          // Create local visual effects
+          const fernSkills = this.player.getFernSkills();
+          if (fernSkills) {
+            fernSkills.useSkill1(playerStats.currentMana);
+          }
+          const starkSkills = this.player.getStarkSkills();
+          if (starkSkills) {
+            const bosses = [{ x: this.boss.getSprite().x, y: this.boss.getSprite().y }];
+            starkSkills.useSkill1(playerStats.currentMana, bosses);
+          }
+          const gutsSkills = this.player.getGutsSkills();
+          if (gutsSkills) {
+            gutsSkills.useSkill1(playerStats.currentHp, playerStats.maxHp, gutsSkills.isInvincible());
+          }
         }
         if (actions.skill2) {
-          socket.emit('game:skill', { skillId: 2 });
+          socket.emit('game:skill', { skillId: 2, mouseX: mousePos.worldX, mouseY: mousePos.worldY });
+          // Create local visual effects
+          const fernSkills = this.player.getFernSkills();
+          if (fernSkills) {
+            fernSkills.useSkill2(playerStats.currentMana, mousePos.worldX, mousePos.worldY);
+          }
+          const starkSkills = this.player.getStarkSkills();
+          if (starkSkills) {
+            starkSkills.useSkill2(playerStats.currentMana);
+          }
+          const gutsSkills = this.player.getGutsSkills();
+          if (gutsSkills) {
+            gutsSkills.useSkill2(playerStats.currentMana);
+          }
         }
         if (actions.ultimate) {
           socket.emit('game:skill', { skillId: 3 });
+          // Create local visual effects
+          const gutsSkills = this.player.getGutsSkills();
+          if (gutsSkills) {
+            gutsSkills.useUltimate(playerStats.currentMana, playerStats.attack);
+          }
         }
+      }
+
+      // Update player skills locally for cooldowns
+      const deltaInMs = delta;
+      if (this.player.getFernSkills()) {
+        this.player.getFernSkills()?.update(deltaInMs);
+      }
+      if (this.player.getStarkSkills()) {
+        this.player.getStarkSkills()?.update(deltaInMs);
+      }
+      if (this.player.getGutsSkills()) {
+        this.player.getGutsSkills()?.update(deltaInMs);
       }
 
       // Update UI from server state

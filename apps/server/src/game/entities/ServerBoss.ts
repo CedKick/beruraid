@@ -322,20 +322,37 @@ export class ServerBoss {
     this.attacks = this.attacks.filter(attack => time < attack.expiresAt);
   }
 
-  takeDamage(amount: number): { barDefeated: boolean; newBarMaxHp?: number } {
-    this.hp -= amount;
+  takeDamage(amount: number): { barDefeated: boolean; newBarMaxHp?: number; newRageCount?: number } {
+    let remainingDamage = amount;
+    let barWasDefeated = false;
+    let newMaxHp = this.maxHp;
 
-    // Check if bar is defeated
-    if (this.hp <= 0) {
-      this.barsDefeated++;
-      this.rageCount++;
+    // Apply damage, potentially across multiple bars
+    while (remainingDamage > 0) {
+      const damageToThisBar = Math.min(remainingDamage, this.hp);
+      this.hp -= damageToThisBar;
+      remainingDamage -= damageToThisBar;
 
-      // Calculate new bar HP
-      const newBarMaxHp = this.barHpIncrement * (this.barsDefeated + 1);
-      this.maxHp = newBarMaxHp;
-      this.hp = newBarMaxHp;
+      // Check if bar is defeated
+      if (this.hp <= 0 && remainingDamage >= 0) {
+        barWasDefeated = true;
+        this.barsDefeated++;
+        this.rageCount++;
 
-      return { barDefeated: true, newBarMaxHp };
+        // Calculate new bar HP
+        newMaxHp = this.barHpIncrement * (this.barsDefeated + 1);
+        this.maxHp = newMaxHp;
+        this.hp = newMaxHp;
+
+        // If there's overflow damage, it will be applied in next iteration
+      } else {
+        // No more bars to defeat, exit loop
+        break;
+      }
+    }
+
+    if (barWasDefeated) {
+      return { barDefeated: true, newBarMaxHp: newMaxHp, newRageCount: this.rageCount };
     }
 
     return { barDefeated: false };
