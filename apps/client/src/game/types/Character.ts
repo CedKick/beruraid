@@ -1,4 +1,4 @@
-export type ElementType = 'Fire' | 'Water' | 'Earth' | 'Wind' | 'Lightning';
+export type ElementType = 'Fire' | 'Water' | 'Wind' | 'Light' | 'Dark';
 export type CharacterRole = 'Tank' | 'DPS' | 'Support' | 'Mage';
 
 export interface CharacterStats {
@@ -94,8 +94,8 @@ export const CHARACTERS: Record<string, CharacterClass> = {
     id: 'fern',
     name: 'Fern',
     role: 'Mage',
-    element: 'Fire',
-    description: 'A powerful fire mage specializing in devastating area-of-effect spells.',
+    element: 'Light',
+    description: 'A powerful light mage specializing in devastating area-of-effect spells.',
     stats: {
       baseHp: 100,
       baseAtk: 25,
@@ -110,30 +110,30 @@ export const CHARACTERS: Record<string, CharacterClass> = {
     skills: {
       skill1: {
         id: 'inferno_blast',
-        name: 'Inferno Blast',
-        description: 'Launches a massive fireball that explodes on impact, dealing massive AOE damage.',
+        name: 'Light Blast',
+        description: 'Launches a massive light orb that explodes on impact, dealing massive AOE damage.',
         cooldown: 6000,
         manaCost: 50,
         damage: 60,
-        element: 'Fire',
+        element: 'Light',
         aoe: true,
         radius: 120,
       },
       skill2: {
         id: 'flame_storm',
-        name: 'Flame Storm',
-        description: 'Summons a storm of flames around the caster, dealing continuous damage.',
+        name: 'Light Storm',
+        description: 'Summons a storm of light around the caster, dealing continuous damage.',
         cooldown: 10000,
         manaCost: 70,
         damage: 80,
-        element: 'Fire',
+        element: 'Light',
         aoe: true,
         radius: 200,
       },
     },
     passive: {
-      name: 'Pyromaniac',
-      description: 'Fire damage increased by 20%. Mana regeneration increased by 50%.',
+      name: 'Light Bearer',
+      description: 'Light damage increased by 20%. Mana regeneration increased by 50%.',
     },
   },
   frieren: {
@@ -185,7 +185,7 @@ export const CHARACTERS: Record<string, CharacterClass> = {
     id: 'guts',
     name: 'Guts',
     role: 'DPS',
-    element: 'Fire',
+    element: 'Dark',
     description: 'The Black Swordsman. A berserker warrior who sacrifices his own life force for devastating power.',
     stats: {
       baseHp: 180,
@@ -206,7 +206,7 @@ export const CHARACTERS: Record<string, CharacterClass> = {
         cooldown: 500,
         manaCost: 0,
         damage: 40,
-        element: 'Fire',
+        element: 'Dark',
         aoe: true,
         radius: 120,
       },
@@ -217,7 +217,7 @@ export const CHARACTERS: Record<string, CharacterClass> = {
         cooldown: 10000,
         manaCost: 30,
         damage: 0,
-        element: 'Fire',
+        element: 'Dark',
         aoe: false,
       },
     },

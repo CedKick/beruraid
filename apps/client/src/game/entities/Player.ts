@@ -4,6 +4,8 @@ import { FernSkills } from '../skills/FernSkills';
 import { StarkSkills } from '../skills/StarkSkills';
 import { GutsSkills } from '../skills/GutsSkills';
 import { socketService } from '../../networking/SocketService';
+import { CHARACTERS } from '../types/Character';
+import type { ElementType } from '../types/Character';
 
 export class Player {
   private scene: Phaser.Scene;
@@ -612,6 +614,11 @@ export class Player {
 
   getStatsManager() {
     return this.statsManager;
+  }
+
+  getElement(): ElementType {
+    const character = CHARACTERS[this.characterId];
+    return character ? character.element : 'Fire'; // Default to Fire if not found
   }
 
   isInvincible() {

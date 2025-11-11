@@ -348,8 +348,8 @@ export class GameRoom {
             bossState.defense
           );
 
-          // Apply damage to boss
-          const result = this.serverBoss.takeDamage(damageResult.damage);
+          // Apply damage to boss (with element for weakness multiplier)
+          const result = this.serverBoss.takeDamage(damageResult.damage, serverPlayer.getElement());
 
           // Track damage dealt for DPS calculation
           serverPlayer.addDamageDealt(damageResult.damage);

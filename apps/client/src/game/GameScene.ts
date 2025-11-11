@@ -1064,7 +1064,7 @@ export class GameScene extends Phaser.Scene {
         playerStats.damageBoost
       );
 
-      this.boss.takeDamage(damageResult.damage);
+      this.boss.takeDamage(damageResult.damage, this.player.getElement());
       this.combatStats.addDamage(damageResult.damage);
 
       // Show floating damage
@@ -1118,7 +1118,7 @@ export class GameScene extends Phaser.Scene {
             playerStats.damageBoost
           );
 
-          this.boss.takeDamage(damageResult.damage);
+          this.boss.takeDamage(damageResult.damage, this.player.getElement());
           this.combatStats.addDamage(damageResult.damage);
 
           // Show floating damage
@@ -1174,7 +1174,7 @@ export class GameScene extends Phaser.Scene {
       playerStats.damageBoost
     );
 
-    this.boss.takeDamage(damageResult.damage);
+    this.boss.takeDamage(damageResult.damage, this.player.getElement());
     this.combatStats.addDamage(damageResult.damage);
 
     // Show floating damage
@@ -1278,7 +1278,7 @@ export class GameScene extends Phaser.Scene {
     );
 
     // Apply damage to boss
-    this.boss.takeDamage(damageResult.damage);
+    this.boss.takeDamage(damageResult.damage, this.player.getElement());
 
     // Track damage in combat stats
     this.combatStats.addDamage(damageResult.damage);
@@ -1350,7 +1350,7 @@ export class GameScene extends Phaser.Scene {
         );
 
         // Apply damage to boss
-        this.boss.takeDamage(damageResult.damage);
+        this.boss.takeDamage(damageResult.damage, this.player.getElement());
 
         // Track damage in combat stats
         this.combatStats.addDamage(damageResult.damage);
@@ -1434,7 +1434,7 @@ export class GameScene extends Phaser.Scene {
         );
 
         // Apply damage
-        this.boss.takeDamage(damageResult.damage);
+        this.boss.takeDamage(damageResult.damage, this.player.getElement());
         this.combatStats.addDamage(damageResult.damage);
 
         // Show floating damage
@@ -1499,7 +1499,7 @@ export class GameScene extends Phaser.Scene {
         );
 
         // Apply damage
-        this.boss.takeDamage(damageResult.damage);
+        this.boss.takeDamage(damageResult.damage, this.player.getElement());
         this.combatStats.addDamage(damageResult.damage);
 
         // Show floating damage

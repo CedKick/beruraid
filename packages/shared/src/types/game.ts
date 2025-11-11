@@ -5,6 +5,8 @@
 import type { Vector2, DamageableEntity } from './entities.js';
 import type { HunterClass } from './hunter.js';
 
+export type ElementType = 'Fire' | 'Water' | 'Wind' | 'Light' | 'Dark';
+
 export interface Player extends DamageableEntity {
   name: string;
   class: HunterClass;
@@ -17,6 +19,7 @@ export interface Boss extends DamageableEntity {
   phase: number;
   maxPhase: number;
   isBreakPhase: boolean;
+  weaknesses?: ElementType[];
 }
 
 export interface Projectile {

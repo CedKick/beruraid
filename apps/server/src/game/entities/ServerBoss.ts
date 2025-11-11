@@ -3,6 +3,8 @@
  * Authoritative boss state and AI logic
  */
 
+import type { ElementType } from '@beruraid/shared';
+
 export interface BossAttack {
   id: string;
   type: 'laser' | 'aoe' | 'expandingCircle';
@@ -32,6 +34,7 @@ export interface BossState {
   velocityY: number;
   defense: number;
   defPen: number;
+  weaknesses: ElementType[];
 }
 
 export class ServerBoss {
@@ -49,6 +52,7 @@ export class ServerBoss {
   private defense = 5000;
   private defPen = 0;
   private speed = 100;
+  private weaknesses: ElementType[] = ['Fire', 'Dark']; // Boss weaknesses
 
   // Attack damages
   private laserDamage = 8;
@@ -325,8 +329,14 @@ export class ServerBoss {
     this.attacks = this.attacks.filter(attack => time < attack.expiresAt);
   }
 
-  takeDamage(amount: number): { barDefeated: boolean; newBarMaxHp?: number; newRageCount?: number } {
-    let remainingDamage = amount;
+  takeDamage(amount: number, element?: ElementType): { barDefeated: boolean; newBarMaxHp?: number; newRageCount?: number } {
+    // Apply weakness multiplier if element matches
+    let finalDamage = amount;
+    if (element && this.weaknesses.includes(element)) {
+      finalDamage *= 2;
+    }
+
+    let remainingDamage = finalDamage;
     let barWasDefeated = false;
     let newMaxHp = this.maxHp;
 
@@ -409,8 +419,13 @@ export class ServerBoss {
       velocityX: this.velocityX,
       velocityY: this.velocityY,
       defense: this.defense,
-      defPen: this.defPen
+      defPen: this.defPen,
+      weaknesses: this.weaknesses
     };
+  }
+
+  getWeaknesses(): ElementType[] {
+    return this.weaknesses;
   }
 
   // Check if a point is hit by any active attack

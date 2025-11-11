@@ -6,7 +6,7 @@
 import { ServerFernSkills } from '../skills/ServerFernSkills.js';
 import { ServerStarkSkills } from '../skills/ServerStarkSkills.js';
 import { ServerGutsSkills } from '../skills/ServerGutsSkills.js';
-import { SkillEffect, PlayerBuff } from '@beruraid/shared';
+import { SkillEffect, PlayerBuff, ElementType } from '@beruraid/shared';
 
 export interface Projectile {
   id: string;
@@ -462,6 +462,17 @@ export class ServerPlayer {
 
   getIsAlive(): boolean {
     return this.isAlive;
+  }
+
+  getElement(): ElementType {
+    // Map characterId to element
+    const elementMap: Record<string, ElementType> = {
+      'stark': 'Fire',
+      'fern': 'Light',
+      'frieren': 'Water',
+      'guts': 'Dark'
+    };
+    return elementMap[this.characterId] || 'Fire';
   }
 
   // Skill usage methods

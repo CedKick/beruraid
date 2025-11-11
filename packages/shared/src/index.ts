@@ -9,3 +9,6 @@ export * from './Game';
 
 // Event types
 export * from './Events';
+
+// Shared types (only ElementType to avoid conflicts)
+export type { ElementType } from './types/game.js';

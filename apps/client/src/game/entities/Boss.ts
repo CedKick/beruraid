@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { ProgressiveBossHealth } from '../systems/ProgressiveBossHealth';
+import type { ElementType } from '../types/Character';
 
 interface LaserData {
   laser: Phaser.GameObjects.Rectangle;
@@ -20,6 +21,7 @@ export class Boss {
   private defense = 5000; // Boss defense stat
   private critResistance = 2000; // Boss resistance to crits
   private experienceReward = 500;
+  private weaknesses: ElementType[] = ['Fire', 'Dark']; // Boss weaknesses
 
   // Attack groups
   private activeLasers: LaserData[] = [];
@@ -468,8 +470,14 @@ export class Boss {
     });
   }
 
-  takeDamage(amount: number) {
-    const events = this.healthSystem.takeDamage(amount);
+  takeDamage(amount: number, element?: ElementType) {
+    // Apply weakness multiplier if element matches
+    let finalDamage = amount;
+    if (element && this.weaknesses.includes(element)) {
+      finalDamage *= 2;
+    }
+
+    const events = this.healthSystem.takeDamage(finalDamage);
 
     // Check for bar defeats and emit events
     events.forEach(event => {
@@ -570,5 +578,9 @@ export class Boss {
 
   getIsStunned() {
     return this.isStunned;
+  }
+
+  getWeaknesses() {
+    return this.weaknesses;
   }
 }

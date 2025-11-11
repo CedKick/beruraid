@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { CHARACTERS } from '../game/types/Character';
+import type { CharacterRole } from '../game/types/Character';
 import './CharacterSelection.css';
 
 interface CharacterSelectionProps {
@@ -9,8 +10,12 @@ interface CharacterSelectionProps {
 export function CharacterSelection({ onCharacterSelected }: CharacterSelectionProps) {
   const [selectedCharacter, setSelectedCharacter] = useState<string | null>(null);
   const [hoveredCharacter, setHoveredCharacter] = useState<string | null>(null);
+  const [roleFilter, setRoleFilter] = useState<CharacterRole | 'All'>('All');
 
   const characters = Object.values(CHARACTERS);
+  const filteredCharacters = roleFilter === 'All'
+    ? characters
+    : characters.filter(char => char.role === roleFilter);
   const displayCharacter = hoveredCharacter || selectedCharacter;
   const currentCharacter = displayCharacter ? CHARACTERS[displayCharacter] : null;
 
@@ -38,23 +43,87 @@ export function CharacterSelection({ onCharacterSelected }: CharacterSelectionPr
     switch (element) {
       case 'Fire': return '#ff6b6b';
       case 'Water': return '#4ecdc4';
-      case 'Earth': return '#a8e6cf';
       case 'Wind': return '#95e1d3';
-      case 'Lightning': return '#ffd93d';
+      case 'Light': return '#ffd93d';
+      case 'Dark': return '#4a4a4a';
       default: return '#95a5a6';
     }
   };
+
+  const getElementIcon = (element: string) => {
+    switch (element) {
+      case 'Fire': return '🔥';
+      case 'Water': return '💧';
+      case 'Wind': return '💨';
+      case 'Light': return '✨';
+      case 'Dark': return '🌑';
+      default: return '❓';
+    }
+  };
+
+  // Boss weaknesses (Fire & Dark by default)
+  const bossWeaknesses = ['Fire', 'Dark'];
 
   return (
     <div className="character-selection">
       <div className="selection-header">
         <h1>🎮 BeruRaid</h1>
         <h2>Choose Your Hunter</h2>
+
+        <div className="boss-weaknesses">
+          <h3>🎯 Boss Weaknesses</h3>
+          <div className="weakness-badges">
+            {bossWeaknesses.map(element => (
+              <div
+                key={element}
+                className="weakness-badge"
+                style={{ backgroundColor: getElementColor(element) }}
+                title={`${element} (x2 Damage)`}
+              >
+                {getElementIcon(element)} {element}
+              </div>
+            ))}
+          </div>
+          <p className="weakness-hint">Deal x2 damage with these elements!</p>
+        </div>
+
+        <div className="role-filters">
+          <button
+            className={`filter-btn ${roleFilter === 'All' ? 'active' : ''}`}
+            onClick={() => setRoleFilter('All')}
+          >
+            All
+          </button>
+          <button
+            className={`filter-btn ${roleFilter === 'Tank' ? 'active' : ''}`}
+            onClick={() => setRoleFilter('Tank')}
+          >
+            Tank
+          </button>
+          <button
+            className={`filter-btn ${roleFilter === 'DPS' ? 'active' : ''}`}
+            onClick={() => setRoleFilter('DPS')}
+          >
+            DPS
+          </button>
+          <button
+            className={`filter-btn ${roleFilter === 'Mage' ? 'active' : ''}`}
+            onClick={() => setRoleFilter('Mage')}
+          >
+            Mage
+          </button>
+          <button
+            className={`filter-btn ${roleFilter === 'Support' ? 'active' : ''}`}
+            onClick={() => setRoleFilter('Support')}
+          >
+            Support
+          </button>
+        </div>
       </div>
 
       <div className="selection-container">
         <div className="character-grid">
-          {characters.map((char) => (
+          {filteredCharacters.map((char) => (
             <div
               key={char.id}
               className={`character-card ${selectedCharacter === char.id ? 'selected' : ''}`}
@@ -63,13 +132,19 @@ export function CharacterSelection({ onCharacterSelected }: CharacterSelectionPr
               onMouseLeave={() => setHoveredCharacter(null)}
             >
               <div className="character-portrait">
-                <div
-                  className="character-icon"
-                  style={{
-                    background: `linear-gradient(135deg, ${getRoleColor(char.role)}, ${getElementColor(char.element)})`
-                  }}
-                >
-                  <span className="character-initial">{char.name[0]}</span>
+                <div className="character-image-wrapper">
+                  <img
+                    src={`/assets/${char.id}_down.png`}
+                    alt={char.name}
+                    className="character-image"
+                  />
+                  <div
+                    className="element-badge"
+                    style={{ backgroundColor: getElementColor(char.element) }}
+                    title={char.element}
+                  >
+                    {getElementIcon(char.element)}
+                  </div>
                 </div>
               </div>
               <div className="character-info">
@@ -79,7 +154,7 @@ export function CharacterSelection({ onCharacterSelected }: CharacterSelectionPr
                     {char.role}
                   </span>
                   <span className="element-tag" style={{ backgroundColor: getElementColor(char.element) }}>
-                    {char.element}
+                    {getElementIcon(char.element)} {char.element}
                   </span>
                 </div>
               </div>
