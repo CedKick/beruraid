@@ -492,15 +492,7 @@ export class Player {
           // For Juhee, send heal projectile; for others, send ranged attack
           if (this.characterId === 'juhee') {
             this.sendRightClickToServer(this.autoAttackTarget.x, this.autoAttackTarget.y);
-            // Also create local visual for immediate feedback
-            if (this.juheeSkills) {
-              this.juheeSkills.createHealProjectileVisual(
-                this.sprite.x,
-                this.sprite.y,
-                this.autoAttackTarget.x,
-                this.autoAttackTarget.y
-              );
-            }
+            // Don't create local visual - let server handle it to avoid duplicates
           } else {
             this.sendAttackToServer('ranged', this.autoAttackTarget.x, this.autoAttackTarget.y);
           }
