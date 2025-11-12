@@ -429,18 +429,10 @@ export class Player {
           this.attackType = 'ranged'; // Use ranged type for heal projectiles
           this.autoAttackTarget = { x: pointer.worldX, y: pointer.worldY };
 
-          // In multiplayer, send first attack immediately AND create local visual
+          // In multiplayer, send first attack immediately
           if (this.isMultiplayer) {
             this.sendRightClickToServer(pointer.worldX, pointer.worldY);
-            // Also create local visual for immediate feedback
-            if (this.juheeSkills) {
-              this.juheeSkills.createHealProjectileVisual(
-                this.sprite.x,
-                this.sprite.y,
-                pointer.worldX,
-                pointer.worldY
-              );
-            }
+            // Don't create local visual - let server handle it to avoid desync
           }
         } else {
           // Other characters: Ranged attack
