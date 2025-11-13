@@ -810,17 +810,13 @@ export class GameRoom {
 
     console.log(`💚 [RIGHTCLICK] Juhee ${serverPlayer.name} using heal projectile to (${targetX.toFixed(0)}, ${targetY.toFixed(0)})`);
 
-    // Use the skill system (creates SkillEffect for multiplayer sync)
-    const result = serverPlayer.useRightClick(Date.now(), targetX, targetY);
+    const now = Date.now();
 
-    if (result.success) {
-      // Add skill effect to tracking
-      if (result.effect) {
-        this.skillEffects.push(result.effect);
-        console.log(`✅ [RIGHTCLICK] Heal projectile effect created: ${result.effect.id}`);
-      } else {
-        console.log(`⚠️ [RIGHTCLICK] No effect created!`);
-      }
+    // Use the PROJECTILE system (same as ranged attacks) instead of SkillEffects
+    const projectile = serverPlayer.createHealProjectile(now, targetX, targetY);
+
+    if (projectile) {
+      console.log(`✅ [RIGHTCLICK] Heal projectile created: ${projectile.id} at (${projectile.x.toFixed(0)}, ${projectile.y.toFixed(0)})`);
     } else {
       console.log(`❌ [RIGHTCLICK] Failed to create heal projectile (cooldown?)`);
     }
