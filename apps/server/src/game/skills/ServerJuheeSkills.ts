@@ -186,8 +186,12 @@ export class ServerJuheeSkills {
     manaCost: number;
     effect?: SkillEffect;
   } {
+    console.log(`💚 [JUHEE_SKILL] useRightClickHeal called - cooldown: ${this.rightClickCooldown}, mana: ${currentMana}, maxHp: ${maxHp}`);
+    console.log(`💚 [JUHEE_SKILL] Position: (${playerX}, ${playerY}) -> Target: (${targetX}, ${targetY})`);
+
     // Check cooldown
     if (this.rightClickCooldown > 0) {
+      console.log(`❌ [JUHEE_SKILL] Right-click on cooldown: ${this.rightClickCooldown}s remaining`);
       return { success: false, manaCost: 0 };
     }
 
@@ -195,11 +199,13 @@ export class ServerJuheeSkills {
     const manaCost = 0;
 
     if (currentMana < manaCost) {
+      console.log(`❌ [JUHEE_SKILL] Not enough mana: ${currentMana} < ${manaCost}`);
       return { success: false, manaCost: 0 };
     }
 
     // Set cooldown
     this.rightClickCooldown = this.rightClickCooldownMax;
+    console.log(`✅ [JUHEE_SKILL] Cooldown set to ${this.rightClickCooldownMax}s`);
 
     // Scale heal and damage with HP
     const healAmount = Math.floor(30 * (1 + maxHp / 1000)); // Heal amount for allies
@@ -235,6 +241,9 @@ export class ServerJuheeSkills {
         bossAmount: bossAmount
       }
     };
+
+    console.log(`✅ [JUHEE_SKILL] Created heal projectile effect: ${effect.id}`);
+    console.log(`💚 [JUHEE_SKILL] Effect details - velocity: (${velocityX.toFixed(1)}, ${velocityY.toFixed(1)}), heal: ${healAmount}, damage: ${bossAmount}`);
 
     return {
       success: true,

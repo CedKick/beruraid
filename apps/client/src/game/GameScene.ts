@@ -768,6 +768,15 @@ export class GameScene extends Phaser.Scene {
   private renderSkillEffects(skillEffects: any[]) {
     const now = Date.now();
 
+    // Log Juhee heal projectiles specifically
+    const juheeHeals = skillEffects.filter((e: any) => e.effectType === 'juhee_heal_projectile');
+    if (juheeHeals.length > 0) {
+      console.log(`💚 [CLIENT] Found ${juheeHeals.length} Juhee heal projectile(s) in skillEffects`);
+      juheeHeals.forEach(h => {
+        console.log(`💚 [CLIENT] - ${h.id} at (${h.x.toFixed(0)}, ${h.y.toFixed(0)}), velocity: (${h.velocityX?.toFixed(1)}, ${h.velocityY?.toFixed(1)})`);
+      });
+    }
+
     // Track which effects are in the server state
     const serverEffectIds = new Set(skillEffects.map((e: any) => e.id));
 

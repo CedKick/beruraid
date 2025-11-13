@@ -528,8 +528,12 @@ export class Player {
 
   private sendRightClickToServer(targetX: number, targetY: number) {
     const socket = socketService.getSocket();
-    if (!socket) return;
+    if (!socket) {
+      console.log('❌ [CLIENT] No socket available for right-click');
+      return;
+    }
 
+    console.log(`✅ [CLIENT] Sending right-click to server - target: (${targetX.toFixed(0)}, ${targetY.toFixed(0)})`);
     socket.emit('game:rightclick', {
       targetX,
       targetY
